@@ -1,0 +1,120 @@
+[33mcommit b99184170700c3843ff1712c658dcef58628f99a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmusic[m[33m)[m
+Merge: 4a25699 c229d70
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:40:20 2026 +0200
+
+    Merge branch 'swarm-docs-e8e6961b' into music
+
+[33mcommit 4a256995121c8364fdb94db321874fd5fc87ea23[m
+Merge: 19132d8 66a14b5
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:40:16 2026 +0200
+
+    Merge branch 'swarm-ui-7652638c' into music
+
+[33mcommit 19132d84e8db14cfd875338270656804a4786bbb[m
+Merge: 80b260c 4fee3d6
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:40:12 2026 +0200
+
+    Merge branch 'swarm-audio-ee45da4c' into music
+
+[33mcommit c229d70cdd478f3a4fbd97e12f2c59d2b5af436a[m
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:39:31 2026 +0200
+
+    docs: align progression, backend order, and dataset numbering with merged code
+
+[33mcommit 66a14b529598b04d7f1f17bfd43cb11d336d8ec3[m
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:39:27 2026 +0200
+
+    style(ui): wrap lines <= 100 chars for ruff E501 compliance
+
+[33mcommit 4fee3d6679f238840d12b7b0911c1c3269732136[m
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:39:26 2026 +0200
+
+    style(audio): wrap lines exceeding 100 chars for ruff CI
+
+[33mcommit 80b260ca8a7787e920c0c4e253e00a4fd17e68cc[m
+Merge: be7b1aa e52ee65
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:35:25 2026 +0200
+
+    Merge branch 'swarm-docs-e8e6961b' into music
+
+[33mcommit be7b1aa8151743689cfb94a744c58e00fa1cd9ba[m
+Merge: 9362832 6396adc
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:35:21 2026 +0200
+
+    Merge branch 'swarm-ui-7652638c' into music
+
+[33mcommit 9362832af29096e3eca7ff5260cd7bc3199e666a[m
+Merge: d04b671 574d12d
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:35:17 2026 +0200
+
+    Merge branch 'swarm-audio-ee45da4c' into music
+
+[33mcommit d04b671b3c53c946cdf928cb1493bd8e9b393ed1[m
+Merge: 16c5c46 f703b14
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:35:13 2026 +0200
+
+    Merge branch 'swarm-vision-a8e5616c' into music
+
+[33mcommit 574d12da8f8e53a894fda13370e5006286ce8d99[m
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:32:57 2026 +0200
+
+    feat(audio): cross-platform MIDI/synth backends and Veridis Quo C-minor engine
+
+[33mcommit f703b142f68d1ff663c3063f028c49a3089ddbf0[m
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:32:41 2026 +0200
+
+    feat(vision): add morphological shape, spottiness, swirliness, and resizable sensor extraction
+
+[33mcommit 16c5c462f30ccdcfeb6925612946c5b201052340[m
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:32:19 2026 +0200
+
+    Scaffold earth_jukebox package, reorganize assets, and add input/datasets/tts/cli/CI
+
+[33mcommit 6396adc38dbda634e94fd79fe91d2a21869ff5ee[m
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:30:56 2026 +0200
+
+    feat(ui): add accessible EarthJukeboxApp with resizable sensor box and rich telemetry HUD
+
+[33mcommit e52ee65e2ebd358104bbd2a3d6f44e1e1e5572ce[m
+Author: vgzoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 21:29:54 2026 +0200
+
+    docs: add emoji-free README and architecture/sonification/datasets guides
+
+[33mcommit f2fcdca960642a3a6eb29fd1f927324c1a96d698[m[33m ([m[1;31morigin/music[m[33m)[m
+Author: Vasilis Zoidis <billzoidis@gmail.com>
+Date:   Sat Nov 14 17:49:12 2026 +0200
+
+    Added music generation from images and text to speach
+
+[33mcommit 91e84557f8edba18bcdf539652125b219d091799[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Author: stzanetis <stzanetis@ece.auth.gr>
+Date:   Sat Nov 14 13:48:27 2026 +0200
+
+    Added world map 3D files
+
+[33mcommit ff3d6c96b10e6665b4d94b8c26725334743fca05[m
+Author: stzanetis <stzanetis@ece.auth.gr>
+Date:   Sat Nov 14 13:46:49 2026 +0200
+
+    Added trackpad test
+
+[33mcommit fd369d7ba4e7990d442eef71be6575703104edde[m
+Author: Savvas Tzanetis <94377331+stzanetis@users.noreply.github.com>
+Date:   Sat Nov 14 13:39:59 2026 +0200
+
+    Initial commit

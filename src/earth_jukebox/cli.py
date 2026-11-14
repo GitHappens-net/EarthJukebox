@@ -5,12 +5,11 @@ from __future__ import annotations
 import argparse
 from typing import Optional
 
-from earth_jukebox.accessibility import AccessibilityTTS
 from earth_jukebox.datasets import DatasetManager
 
 
 def run_self_test() -> int:
-    """Run an end-to-end headless verification of NASA datasets, CV, audio, and TTS."""
+    """Run an end-to-end headless verification of NASA datasets, CV, and audio."""
     from earth_jukebox.audio import CMinorAudioEngine
     from earth_jukebox.vision import CVAnalyzer, extract_sensor_box
 
@@ -18,7 +17,6 @@ def run_self_test() -> int:
     datasets = manager.load_datasets()
     analyzer = CVAnalyzer()
     engine = CMinorAudioEngine(enable_audio=False)
-    tts = AccessibilityTTS(enabled=False)
 
     print(f"[Self-Test] Discovered {len(datasets)} datasets:")
     for idx in range(len(datasets)):
@@ -52,13 +50,11 @@ def run_self_test() -> int:
             f"D={center_res.density:.2f} shape={center_res.shape} "
             f"spot={center_res.spottiness:.2f} swirl={center_res.swirliness:.2f}{note_desc}"
         )
-        print(f"    Speech: {analyzer.format_speech_summary(center_res, dataset=entry)}")
+        print(f"    Description: {analyzer.format_speech_summary(center_res, dataset=entry)}")
         manager.next_dataset()
 
     engine.start()
     engine.stop()
-    tts.start()
-    tts.stop()
     print("[Self-Test] PASSED")
     return 0
 
@@ -90,11 +86,6 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         help="Start with ambient drums muted (toggle anytime with D).",
     )
     parser.add_argument(
-        "--no-tts",
-        action="store_true",
-        help="Disable spoken TTS announcements.",
-    )
-    parser.add_argument(
         "--self-test",
         action="store_true",
         help="Run headless end-to-end verification and exit.",
@@ -110,6 +101,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     try:
         import tkinter as tk
+
         from PIL import Image, ImageTk  # noqa: F401
     except ImportError as exc:
         raise RuntimeError(
@@ -126,15 +118,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         enable_audio=not args.no_audio,
         ambient_drums=not args.no_drums,
     )
-    tts = AccessibilityTTS(enabled=not args.no_tts)
-
     root = tk.Tk()
     EarthJukeboxApp(
         root=root,
         dataset_manager=dataset_manager,
         cv_analyzer=cv_analyzer,
         audio_engine=audio_engine,
-        tts=tts,
         input_mode=args.input,
         evdev_device=args.device,
     )

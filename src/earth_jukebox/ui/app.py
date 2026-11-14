@@ -14,6 +14,7 @@ import numpy as np
 try:
     import tkinter as tk
     from tkinter import font as tkfont
+
     from PIL import Image, ImageTk
 except ImportError:  # pragma: no cover - optional only in headless test runs
     tk = None  # type: ignore[assignment]
@@ -21,7 +22,11 @@ except ImportError:  # pragma: no cover - optional only in headless test runs
     Image = None  # type: ignore[assignment]
     ImageTk = None  # type: ignore[assignment]
 
-from earth_jukebox.accessibility import AccessibilityTTS
+from earth_jukebox.accessibility.descriptions import (
+    AUDIO_LEGEND_TEXT,
+    format_dataset_description,
+    format_zone_description,
+)
 from earth_jukebox.audio import CMinorAudioEngine
 from earth_jukebox.datasets import DatasetManager
 from earth_jukebox.input import (
@@ -78,7 +83,7 @@ class EarthJukeboxApp:
         dataset_manager: DatasetManager,
         cv_analyzer: CVAnalyzer,
         audio_engine: CMinorAudioEngine,
-        tts: AccessibilityTTS,
+        tts: object | None = None,
         input_mode: str = "mouse",
         evdev_device: Optional[str] = None,
         sensor_size: int = DEFAULT_SENSOR_SIZE,
@@ -90,7 +95,6 @@ class EarthJukeboxApp:
         self.dataset_manager = dataset_manager
         self.cv_analyzer = cv_analyzer
         self.audio_engine = audio_engine
-        self.tts = tts
         self.sensor_size = self._clamp_sensor_size(sensor_size)
 
         self.stop_event = threading.Event()
@@ -140,7 +144,6 @@ class EarthJukeboxApp:
         self.dataset_manager.load_datasets()
         self._display_current_dataset(announce=False)
 
-        self.tts.start()
         self.audio_engine.start()
         self.input_source.start()
 
@@ -367,29 +370,28 @@ class EarthJukeboxApp:
         if self._auto_scan_enabled:
             self._auto_scan_enabled = False
 
+    def _announce_accessible_text(self, text: str) -> None:
+        """Publish keyboard announcements as live text for assistive technology."""
+        self.telemetry_label.configure(text=text)
+
     def _on_space_legend(self, _event: Optional["tk.Event"]) -> str:
-        self.tts.speak(self.tts.AUDIO_LEGEND_TEXT, interrupt=True)
+        self._announce_accessible_text(AUDIO_LEGEND_TEXT)
         return "break"
 
     def _on_read_zone(self, _event: Optional["tk.Event"]) -> str:
         if not self._latest_analysis.touching:
-            self.tts.speak(
-                "Cursor is outside the map area. "
-                "Hover over the visualization or press P for auto-scan.",
-                interrupt=True,
-            )
+            text = format_zone_description(self._latest_analysis)
         else:
             entry = self.dataset_manager.current_dataset()
-            self.tts.speak(
-                self.cv_analyzer.format_speech_summary(self._latest_analysis, dataset=entry),
-                interrupt=True,
-            )
+            text = format_zone_description(self._latest_analysis, dataset=entry)
+        self._announce_accessible_text(text)
         return "break"
 
     def _on_dataset_info(self, _event: Optional["tk.Event"]) -> str:
         entry = self.dataset_manager.current_dataset()
-        text = entry.summary or f"Viewing {entry.name}."
-        self.tts.speak(f"{entry.name}. {text}", interrupt=True)
+        self._announce_accessible_text(
+            format_dataset_description(entry, *self.dataset_manager.current_index())
+        )
         return "break"
 
     def _on_toggle_auto_scan(self, _event: Optional["tk.Event"]) -> str:
@@ -400,13 +402,13 @@ class EarthJukeboxApp:
             if self._auto_scan_enabled
             else "Auto-scan paused."
         )
-        self.tts.speak(state_msg, interrupt=True)
+        self._announce_accessible_text(state_msg)
         return "break"
 
     def _on_toggle_drums(self, _event: Optional["tk.Event"]) -> str:
         enabled = self.audio_engine.toggle_drums()
         msg = "Ambient drums enabled." if enabled else "Ambient drums muted."
-        self.tts.speak(msg, interrupt=True)
+        self._announce_accessible_text(msg)
         return "break"
 
     def _on_tab_dataset(self, _event: Optional["tk.Event"]) -> str:
@@ -442,7 +444,7 @@ class EarthJukeboxApp:
             return self.sensor_size
 
         self.sensor_size = new_size
-        self.tts.speak(f"Sensor box {self.sensor_size} pixels.", interrupt=True)
+        self._announce_accessible_text(f"Sensor box {self.sensor_size} pixels.")
 
         if (
             self._last_touch_point is not None
@@ -499,7 +501,9 @@ class EarthJukeboxApp:
         ):
             self._process_touch_point(self._last_touch_point)
         if announce:
-            self.tts.speak(f"Switched dataset to {entry.name}.", interrupt=True)
+            self._announce_accessible_text(
+                format_dataset_description(entry, idx, total)
+            )
 
     def _step_auto_scan(self) -> None:
         now = time.monotonic()
@@ -645,7 +649,6 @@ class EarthJukeboxApp:
             self._poll_after_id = None
         self.input_source.stop()
         self.audio_engine.stop()
-        self.tts.stop()
         try:
             self.root.destroy()
         except Exception:
