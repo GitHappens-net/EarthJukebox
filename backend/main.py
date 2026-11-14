@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import webview
 import argparse
 import json
 import os
@@ -9,21 +9,7 @@ import threading
 import time
 from dataclasses import dataclass
 from typing import Optional
-
-try:
-    import webview
-except ImportError as exc:
-    raise SystemExit(
-        "This app requires pywebview. Install it with: python3 -m pip install pywebview"
-    ) from exc
-
-try:
-    from evdev import InputDevice, ecodes, list_devices
-except ImportError as exc:
-    raise SystemExit(
-        "This app requires python-evdev. Install it with: python3 -m pip install evdev"
-    ) from exc
-
+from evdev import InputDevice, ecodes, list_devices
 
 @dataclass(frozen=True)
 class TouchPoint:
@@ -33,14 +19,11 @@ class TouchPoint:
     y_ratio: float
     touching: bool
 
-
 PadState = dict[str, float | bool | int]
 pad_state: PadState = {"x": 0.5, "y": 0.5, "touching": False, "fingers": 0}
 
-
 def _absolute_codes(device: InputDevice) -> set[int]:
     return {code for code, _ in device.capabilities().get(ecodes.EV_ABS, [])}
-
 
 def _has_coordinates(device: InputDevice) -> bool:
     absolute_codes = _absolute_codes(device)
@@ -51,7 +34,6 @@ def _has_coordinates(device: InputDevice) -> bool:
             ecodes.ABS_MT_POSITION_Y,
         }.issubset(absolute_codes)
     )
-
 
 def find_touchpad(path: Optional[str]) -> InputDevice:
     if path:
@@ -86,13 +68,11 @@ def find_touchpad(path: Optional[str]) -> InputDevice:
         )
     return candidates[0]
 
-
 def _axis_codes(device: InputDevice) -> tuple[int, int]:
     absolute_codes = _absolute_codes(device)
     if {ecodes.ABS_X, ecodes.ABS_Y}.issubset(absolute_codes):
         return ecodes.ABS_X, ecodes.ABS_Y
     return ecodes.ABS_MT_POSITION_X, ecodes.ABS_MT_POSITION_Y
-
 
 def read_touchpad(
     device: InputDevice, points: queue.Queue[TouchPoint], stop: threading.Event
@@ -140,7 +120,6 @@ def read_touchpad(
                 )
             )
 
-
 def _update_pad_state(points: queue.Queue[TouchPoint], stop: threading.Event) -> None:
     while not stop.is_set():
         try:
@@ -154,8 +133,9 @@ def _update_pad_state(points: queue.Queue[TouchPoint], stop: threading.Event) ->
             fingers=1 if point.touching else 0,
         )
 
-
 class JukeboxAPI:
+    """Template for methods exposed to the TypeScript frontend."""
+
     def load_dataset(self, dataset_id: str) -> dict[str, str | float]:
         return {
             "id": dataset_id,
@@ -168,7 +148,6 @@ class JukeboxAPI:
         pad_state.update(x=0.5, y=0.5, touching=False, fingers=0)
         return "Pad calibrated"
 
-
 def resolve_ui_url() -> str:
     if "--dev" in sys.argv:
         return "http://localhost:5173"
@@ -177,9 +156,8 @@ def resolve_ui_url() -> str:
     if os.path.exists(packaged_ui):
         return packaged_ui
     return os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "TESTS", "dist", "index.html")
+        os.path.join(os.path.dirname(__file__), "..", "frontend", "dist", "index.html")
     )
-
 
 def stream_trackpad_to_ui(
     window: webview.Window, stop: threading.Event
@@ -195,7 +173,6 @@ def stream_trackpad_to_ui(
             if stop.is_set():
                 return
         time.sleep(1 / 60)
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -244,7 +221,6 @@ def main() -> int:
     except (OSError, RuntimeError) as exc:
         print(f"trackpad monitor: {exc}", file=sys.stderr)
         return 1
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
