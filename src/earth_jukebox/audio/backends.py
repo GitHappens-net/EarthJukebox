@@ -395,7 +395,10 @@ class PygameMixerSynthBackend(AudioBackend):
                 phase = 2.0 * math.pi * np.cumsum(freq_sweep) / self.SAMPLE_RATE
                 wave = np.sin(phase) * np.exp(-t * 14.0)
             elif midi_note in (37, 39, 63):
-                wave = (np.sin(2.0 * math.pi * 420.0 * t) * 0.6 + np.sin(2.0 * math.pi * 890.0 * t) * 0.4)
+                wave = (
+                    np.sin(2.0 * math.pi * 420.0 * t) * 0.6
+                    + np.sin(2.0 * math.pi * 890.0 * t) * 0.4
+                )
                 wave = wave * np.exp(-t * 28.0)
             else:
                 rng = np.random.default_rng(midi_note)
@@ -416,7 +419,11 @@ class PygameMixerSynthBackend(AudioBackend):
                 env = np.minimum(1.0, t / 0.010) * np.exp(-t * 3.0)
             else:
                 # Warm Drawbar Organ / Rhodes Pad
-                wave = 0.65 * np.sin(phase) + 0.25 * np.sin(2.0 * phase) + 0.10 * np.sin(3.0 * phase)
+                wave = (
+                    0.65 * np.sin(phase)
+                    + 0.25 * np.sin(2.0 * phase)
+                    + 0.10 * np.sin(3.0 * phase)
+                )
                 env = np.minimum(1.0, t / 0.035) * np.exp(-t * 1.1)
             wave = wave * env
 
