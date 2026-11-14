@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "earth-jukebox"
+version = "0.2.0"
+description = "Accessible NASA Earth Imagery Sonification Engine"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "opencv-python",
+    "numpy",
+    "pillow",
+]
+
+[project.optional-dependencies]
+tts = ["pyttsx3"]
+midi = ["pygame"]
+linux = ["evdev"]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+earth-jukebox = "earth_jukebox.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+earth_jukebox = ["datasets/*.json"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: tests needing local audio hardware or full dataset images",
+]
