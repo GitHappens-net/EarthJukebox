@@ -7,7 +7,9 @@ import queue
 import sys
 import threading
 import time
+from urllib.parse import quote
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 try:
     from evdev import InputDevice, ecodes, list_devices
@@ -26,6 +28,35 @@ class TouchPoint:
 
 PadState = dict[str, float | bool | int]
 pad_state: PadState = {"x": 0.5, "y": 0.5, "touching": False, "fingers": 0}
+
+
+def _placeholder_image(background: str, accent: str, label: str) -> str:
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<rect width="800" height="450" fill="{background}"/>
+<path d="M0 330 Q180 180 360 310 T800 180 V450 H0Z" fill="{accent}" opacity=".72"/>
+<circle cx="620" cy="125" r="72" fill="{accent}" opacity=".42"/>
+<text x="40" y="80" fill="white" font-family="sans-serif" font-size="34">{label}</text>
+</svg>"""
+    return f"data:image/svg+xml,{quote(svg)}"
+
+
+def load_datasets() -> list[dict[str, str | float]]:
+    source = Path(__file__).with_name("datasets.json")
+    definitions = json.loads(source.read_text(encoding="utf-8"))
+    return [
+        {
+            **definition,
+            "image": _placeholder_image(
+                definition["background"],
+                definition["accent"],
+                definition["label"],
+            ),
+        }
+        for definition in definitions
+    ]
+
+
+DATASETS = load_datasets()
 
 def _absolute_codes(device: InputDevice) -> set[int]:
     if ecodes is None:
@@ -151,13 +182,14 @@ def _update_pad_state(points: queue.Queue[TouchPoint], stop: threading.Event) ->
 class JukeboxAPI:
     """Template for methods exposed to the TypeScript frontend."""
 
+    def get_datasets(self) -> list[dict[str, str | float]]:
+        return DATASETS
+
     def load_dataset(self, dataset_id: str) -> dict[str, str | float]:
-        return {
-            "id": dataset_id,
-            "unit": "ppm" if dataset_id == "co2" else "°C",
-            "min": 410.0,
-            "max": 435.0,
-        }
+        for dataset in DATASETS:
+            if dataset["id"] == dataset_id:
+                return dataset
+        raise ValueError(f"Unknown dataset: {dataset_id}")
 
     def calibrate_pad(self) -> str:
         pad_state.update(x=0.5, y=0.5, touching=False, fingers=0)

@@ -1,71 +1,99 @@
-import { useState } from "react";
-import { getJukeboxApi } from "./api";
+import { useEffect, useState } from "react";
+import { getJukeboxApi, type Dataset } from "./api";
 import { useTrackpad } from "./useTrackpad";
 
-export default function App() {
-  const { pad, isDesktopApp, onFallbackPointer } = useTrackpad();
-  const [message, setMessage] = useState("Move your finger across the trackpad");
+const fallbackDatasets: Dataset[] = [
+  ["Aerosols", "A placeholder view of atmospheric aerosol movement.", "#596f4d", "#d9a441"],
+  ["Ocean Currents", "A placeholder view of surface ocean circulation.", "#244c63", "#48d1cc"],
+  ["Fire Weather", "A placeholder view of regional wildfire risk.", "#693e36", "#e58b52"],
+  ["Global CO₂", "A placeholder view of atmospheric carbon dioxide.", "#3e4d72", "#b8c5ed"],
+  ["World Topography", "A placeholder tactile map reference.", "#566c4b", "#d0b27a"],
+].map(([title, description, background, accent], index) => ({
+  id: `fallback-${index}`,
+  title,
+  description,
+  image: `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450"><rect width="800" height="450" fill="${background}"/><circle cx="620" cy="125" r="72" fill="${accent}" opacity=".5"/><path d="M0 330 Q180 180 360 310 T800 180 V450 H0Z" fill="${accent}" opacity=".72"/></svg>`,
+  )}`,
+  unit: "value",
+  min: 0,
+  max: 100,
+}));
 
-  const calibrate = async () => {
+export default function App() {
+  const { pad, onFallbackPointer } = useTrackpad();
+  const [datasets, setDatasets] = useState<Dataset[]>(fallbackDatasets);
+  const [selectedId, setSelectedId] = useState(fallbackDatasets[0].id);
+
+  useEffect(() => {
     const api = getJukeboxApi();
-    if (!api) {
-      setMessage("Calibration is available in the desktop app");
-      return;
-    }
-    setMessage(await api.calibrate_pad());
-  };
+    if (!api) return;
+    void api.get_datasets().then((items) => {
+      if (items.length > 0) {
+        setDatasets(items);
+        setSelectedId(items[0].id);
+      }
+    });
+  }, []);
+
+  const selected = datasets.find((dataset) => dataset.id === selectedId) ?? datasets[0];
+  if (!selected) return null;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10 text-[#e8f2f1]">
-      <header>
-        <p className="font-space text-xs uppercase tracking-[0.18em] text-[#48d1cc]">
-          Earth Information Jukebox
-        </p>
+    <div className="min-h-screen bg-[#a8bc9c] text-[#263525]">
+      <header className="bg-[#4b613f] px-8 py-3">
+        <h1 className="font-display text-3xl text-[#e2a95c] sm:text-4xl">TerraGroove</h1>
       </header>
-      <section
-        className="relative my-10 min-h-[260px] h-[min(52vw,440px)] touch-none overflow-hidden rounded-2xl border border-[#2e5054] bg-[radial-gradient(circle_at_center,_#193337,_#152124_65%)]"
-        onPointerDown={(event) => onFallbackPointer(event, true)}
-        onPointerMove={(event) => {
-          if (event.buttons > 0) onFallbackPointer(event, true);
-        }}
-        onPointerUp={(event) => onFallbackPointer(event, false)}
-        onPointerLeave={(event) => onFallbackPointer(event, false)}
-      >
-        <div className="absolute inset-[12%] rounded-full border border-[#286267] opacity-50" />
-        <div
-          className={`absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#48d1cc] transition-[opacity,box-shadow] ${
-            pad.touching
-              ? "opacity-100 shadow-[0_0_0_12px_#48d1cc33,0_0_35px_#48d1cc]"
-              : "opacity-30 shadow-[0_0_0_8px_#48d1cc22,0_0_28px_#48d1cc]"
-          }`}
-          style={{ left: `${pad.x * 100}%`, top: `${pad.y * 100}%` }}
-        />
-      </section>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-[#294146] bg-[#152326] p-4">
-          <span className="block text-xs uppercase text-[#91a5a6]">X</span>
-          <strong className="mt-2 block">{pad.x.toFixed(3)}</strong>
-        </div>
-        <div className="rounded-xl border border-[#294146] bg-[#152326] p-4">
-          <span className="block text-xs uppercase text-[#91a5a6]">Y</span>
-          <strong className="mt-2 block">{pad.y.toFixed(3)}</strong>
-        </div>
-        <div className="rounded-xl border border-[#294146] bg-[#152326] p-4">
-          <span className="block text-xs uppercase text-[#91a5a6]">Status</span>
-          <strong className="mt-2 block">{pad.touching ? "Touching" : "Idle"}</strong>
-        </div>
-        <div className="rounded-xl border border-[#294146] bg-[#152326] p-4">
-          <span className="block text-xs uppercase text-[#91a5a6]">Fingers</span>
-          <strong className="mt-2 block">{pad.fingers}</strong>
-        </div>
-      </section>
-      <button
-        className="mt-7 cursor-pointer rounded-lg bg-[#48d1cc] px-5 py-3 font-semibold text-[#10191c]"
-        type="button"
-        onClick={calibrate}
-      >
-        Calibrate pad
-      </button>
-    </main>
+      <main className="mx-auto grid max-w-6xl grid-cols-1 gap-5 px-8 py-6 lg:grid-cols-[minmax(0,1fr)_96px]">
+        <section>
+          <div
+            className="relative aspect-video max-h-[500px] touch-none overflow-hidden rounded-xl border-2 border-white/60 bg-[#d6d6d6] shadow-lg"
+            onPointerDown={(event) => onFallbackPointer(event, true)}
+            onPointerMove={(event) => {
+              if (event.buttons > 0) onFallbackPointer(event, true);
+            }}
+            onPointerUp={(event) => onFallbackPointer(event, false)}
+            onPointerLeave={(event) => onFallbackPointer(event, false)}
+          >
+            <img className="h-full w-full object-cover" src={selected.image} alt={selected.title} />
+            <div className="absolute inset-0 bg-black/10" />
+            <div
+              className="absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+              style={{ left: `${pad.x * 100}%`, top: `${pad.y * 100}%` }}
+            />
+            <button
+              className="absolute bottom-3 right-3 z-20 rounded-lg bg-[#4b613f] px-3 py-1.5 text-xs font-semibold text-white"
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => void getJukeboxApi()?.calibrate_pad()}
+            >
+              Calibrate
+            </button>
+          </div>
+          <div className="mt-5">
+            <h2 className="font-display text-2xl text-[#4b613f]">{selected.title}</h2>
+            <p className="mt-1 max-w-2xl">{selected.description}</p>
+            <p className="mt-2 text-xs text-[#52644c]">
+              Range: {selected.min}–{selected.max} {selected.unit}
+            </p>
+          </div>
+        </section>
+        <aside className="flex gap-4 overflow-x-auto lg:flex-col lg:overflow-visible">
+          {datasets.map((dataset) => (
+            <button
+              className={`h-20 min-w-24 overflow-hidden rounded-lg border-4 bg-white ${
+                dataset.id === selected.id ? "border-[#4b613f]" : "border-white/70"
+              }`}
+              key={dataset.id}
+              type="button"
+              onClick={() => setSelectedId(dataset.id)}
+              title={dataset.title}
+            >
+              <img className="h-full w-full object-cover" src={dataset.image} alt="" />
+            </button>
+          ))}
+        </aside>
+      </main>
+    </div>
   );
 }

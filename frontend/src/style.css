@@ -1,12 +1,12 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-space: "Space Grotesk", sans-serif;
+  --font-display: "Anton", sans-serif;
+  --font-sans: "Inter", sans-serif;
 }
 
 body {
   min-width: 320px;
   background: #10191c;
-  font-family: var(--font-space);
+  font-family: var(--font-sans);
 }
