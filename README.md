@@ -10,7 +10,7 @@ Earth Jukebox pairs a **3D-printed tactile world map** mounted over a Linux lapt
 
 - **Tactile + Pointer Exploration**: Explore planetary data physically through a 3D-printed world map overlay (`hardware/tactile-map/`) on Linux `evdev` trackpads or seamlessly with a desktop mouse cursor.
 - **Real-Time Computer Vision**: Extracts a resizable sensor box (`16` to `160` px, default `40` px) and measures dominant color, intensity, edge density, spatial shape (`uniform`, `linear`, `circular`, `organic`), spottiness, and swirliness.
-- **Veridis Quo-Inspired 90 BPM Sonification**: Translates visual Earth features into a locked 90 BPM, C Natural Minor (`C, D, Eb, F, G, Ab, Bb`) baroque 8-bar progression (`Cm7 -> Fm7 -> Bb6 -> Ebmaj7 -> Abmaj7 -> Fm7 -> G7sus4 -> Cm9`) with adaptive ambient percussion.
+- **Veridis Quo-Inspired 90 BPM Sonification**: Translates visual Earth features into a locked 90 BPM, C Natural Minor (`C, D, Eb, F, G, Ab, Bb`) baroque 8-bar progression (`Cm9 -> Fm7 -> Bb9 -> Ebmaj7 -> Abmaj7 -> Fm9 -> Dm7b5 -> Gm7`) with adaptive ambient percussion.
 - **Accessible by Design**: Non-blocking, interruptible TTS announces zone readings, scientific color meanings, and dataset briefings via keyboard shortcuts (`pyttsx3`, Windows `System.Speech`, or Linux `spd-say` / `espeak`).
 
 ---

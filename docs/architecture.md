@@ -12,9 +12,9 @@ Earth Jukebox is structured as a modular `src/` Python package (`earth_jukebox`)
 | `input/` | Abstract input stream, bounded queue helper, mouse & Linux `evdev` drivers | `CoordinateInputSource`, `push_latest_point`, `WindowsMouseInputProxy`, `EvdevTrackpadInputProxy`, `find_touchpad`, `read_touchpad` |
 | `datasets/` | Discovers NASA imagery, normalizes oversized frames, caches BGR arrays, binds metadata | `DatasetManager`, `catalog.json` |
 | `vision/` | Edge-safe sensor patch cropping and morphological/color feature extraction | `extract_sensor_box`, `CVAnalyzer` |
-| `audio/` | C Natural Minor scale/chord theory, cross-platform MIDI backends, 90 BPM sequencer | `CMinorAudioEngine`, `AudioBackend`, `PygameMidiBackend`, `WinmmMidiBackend`, `NullAudioBackend`, `create_best_audio_backend` |
+| `audio/` | C Natural Minor scale/chord theory, cross-platform MIDI/synth backends, 90 BPM sequencer | `CMinorAudioEngine`, `AudioBackend`, `PygameMidiBackend`, `WinmmMidiBackend`, `LinuxFluidSynthBackend`, `PygameMixerSynthBackend`, `NullAudioBackend`, `create_best_audio_backend` |
 | `accessibility/` | Non-blocking, interruptible speech worker with OS fallbacks | `AccessibilityTTS` |
-| `ui/` | Fixed-size non-wobbling Tkinter canvas, HUD telemetry, scroll/keyboard controls | `EarthJukeboxApp` |
+| `ui/` | Fixed-size (`992x770`) non-wobbling Tkinter canvas, HUD telemetry, scroll/keyboard controls | `EarthJukeboxApp` |
 | `cli.py` & `__main__.py` | Argument parsing (`--input`, `--device`, `--no-audio`, `--no-drums`, `--no-tts`, `--self-test`) and app startup | `parse_args`, `run_self_test`, `main` |
 
 Outside the package, `tools/trackpad_monitor.py` provides a standalone raw coordinate monitor for inspecting Linux `evdev` trackpad streams prior to launching the main sonifier.

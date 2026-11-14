@@ -18,20 +18,20 @@ Earth Jukebox uses a structured, rule-driven musical engine (`CMinorAudioEngine`
 
 ## 2. Veridis Quo-Inspired 8-Bar Harmonic Architecture
 
-The harmonic engine cycles through an 8-bar baroque descending progression in C Natural Minor, keeping all chord tones strictly inside `{C, D, Eb, F, G, Ab, Bb}`:
+The harmonic engine cycles through `VERIDIS_QUO_PROGRESSION`, an 8-bar baroque descending circle-of-fifths progression in C Natural Minor, keeping all chord tones strictly inside `{C, D, Eb, F, G, Ab, Bb}`:
 
 ```text
-Bar 1: Cm7    -> Bar 2: Fm7    -> Bar 3: Bb6    -> Bar 4: Ebmaj7
-Bar 5: Abmaj7 -> Bar 6: Fm7    -> Bar 7: G7sus4 -> Bar 8: Cm9
+Bar 1: Cm9    -> Bar 2: Fm7    -> Bar 3: Bb9    -> Bar 4: Ebmaj7
+Bar 5: Abmaj7 -> Bar 6: Fm9    -> Bar 7: Dm7b5  -> Bar 8: Gm7
 ```
 
-Note that Bar 7 uses `G7sus4` (`G - C - D - F`, avoiding `B` natural) so 100% of harmonic voicings remain strictly within C Natural Minor.
+Bar 7 uses `Dm7b5` (`D - F - Ab - C`) and Bar 8 resolves to `Gm7` (`G - Bb - D - F`), avoiding `B` natural so 100% of harmonic voicings remain strictly within C Natural Minor.
 
 ### Multi-Layered Arrangement
 
-1. **Vintage Organ / Warm Pad Bed**: Holds dreamy 7th and 9th harmonic voicings on bar boundaries, enveloped with spatial MIDI Reverb (`CC 91`) and Chorus (`CC 93`).
-2. **French-Touch Synth Bass**: Plays warm root/octave pulses locked to the 8-bar chord changes.
-3. **Baroque Arpeggiator & Data Lead Voices**: Cascading melodic patterns and harmonic turns driven in real time by the cursor's `AnalysisResult`.
+1. **Vintage Organ & Warm Pad Bed (`Channel 0` Drawbar Organ, `Channel 10` Warm Pad, `Channel 12` Church Organ)**: Holds dreamy 7th and 9th harmonic voicings on bar boundaries, enveloped with spatial MIDI Reverb (`CC 91`) and Chorus (`CC 93`).
+2. **French-Touch Synth Bass (`Channel 6` Synth Bass 1)**: Plays warm root/octave pulses locked to the 8-bar chord changes.
+3. **Baroque Arpeggiator & Data Lead Voices (`Channel 8` Square Lead Arp, `Channels 1-5, 7` Color Voices, `Channel 11` Spottiness Marimba)**: Cascading melodic patterns, harmonic turns, and staccato counter-accents driven in real time by the cursor's `AnalysisResult`.
 4. **Ambient Drum & Percussion Groove (MIDI Channel 9)**: Synced to the 90 BPM 16th-note clock and toggleable anytime with `[D]` (or disabled at launch via `--no-drums`):
    - Muted heartbeat kick (`36`)
    - Gentle rimshot / side-stick / clap backbeat (`37` / `39`)
@@ -105,9 +105,10 @@ Adjusted anytime with `[+]` / `[-]` (also `=`, `_`, `[`, `]`) or the mouse scrol
 
 ## 4. Cross-Platform Audio Backends
 
-`create_best_audio_backend(enable_audio=True)` selects the best driver without crashing on headless or Linux machines:
+`create_best_audio_backend(enable_audio=True)` selects the best driver in priority order (`PygameMidiBackend` -> `WinmmMidiBackend` on Windows / `LinuxFluidSynthBackend` on Linux -> `PygameMixerSynthBackend` -> `NullAudioBackend`) without crashing on headless or Linux machines:
 
 1. **`PygameMidiBackend`**: Cross-platform MIDI output via `pygame.midi` when a MIDI port is available.
-2. **`WinmmMidiBackend`**: Native Windows General MIDI synthesizer via `winmm.dll` (loaded lazily on Windows only, zero extra Python dependencies).
-3. **Linux Audio Fallback**: Optional Linux synth fallback (e.g., FluidSynth / ALSA / pygame mixer) when configured.
-4. **`NullAudioBackend`**: Silent no-op backend used with `--no-audio`, `--self-test`, and headless unit tests.
+2. **`WinmmMidiBackend`** (Windows): Native Windows General MIDI synthesizer via `winmm.dll` (loaded lazily on Windows only, zero extra Python dependencies).
+3. **`LinuxFluidSynthBackend`** (Linux): Launches FluidSynth software synthesis with SoundFont playback when `fluidsynth` is available on Linux.
+4. **`PygameMixerSynthBackend`**: Cross-platform software synthesizer fallback via `pygame.mixer` + NumPy waveforms when hardware/OS MIDI ports are unavailable.
+5. **`NullAudioBackend`**: Silent no-op backend used with `--no-audio`, `--self-test`, and headless unit tests.

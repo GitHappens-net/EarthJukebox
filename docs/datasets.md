@@ -11,14 +11,14 @@ Earth Jukebox ships with **7 NASA Earth Information Center (EIC) visualizations*
 | # | Filename (`data/images/`) | Native Size | Dataset Title & Source | Unit |
 | :---: | :--- | :--- | :--- | :--- |
 | 1 | `aerosol-optical-depth-pm25-2019.png` | `1007x557` | Global PM2.5 Aerosol Optical Depth (2019) -- MODIS / MISR / SeaWiFS | `ug/m3` |
-| 2 | `geos-aerosols-2025-08-19.png` | `1920x1080` | GEOS Global Aerosol Transport (Aug 2025) -- NASA GEOS | `Aerosol Plumes` |
+| 2 | `airs-global-co2-60s.png` | `720x480` | AIRS Global Tropospheric CO2 (365-435 ppm) -- NASA Aqua / AIRS | `ppm CO2` |
 | 3 | `ecco2-ocean-currents-grid.jpg` | `6840x3420` | ECCO2 Perpetual Ocean Currents & Temperature -- NASA ECCO2 | `deg C / Flow` |
 | 4 | `fwi-conus-2026-08-01.png` | `1920x1080` | North America Fire Weather Index (Aug 2026) -- NASA GFWED | `FWI Risk` |
 | 5 | `fwi-global-forecast-latest.png` | `2160x1080` | Global Fire Weather Index Forecast (Nov 2026) -- NASA GFWED | `FWI Risk` |
-| 6 | `airs-global-co2-60s.png` | `720x480` | AIRS Global Tropospheric CO2 (365-435 ppm) -- NASA Aqua / AIRS | `ppm CO2` |
+| 6 | `geos-aerosols-2025-08-19.png` | `1920x1080` | GEOS Global Aerosol Transport (Aug 2025) -- NASA GEOS | `Aerosol Plumes` |
 | 7 | `svs-co2-column-2021-05-16.png` | `1860x935` | NASA SVS 3D Carbon Dioxide Column (May 2021) -- NASA SVS | `ppm CO2` |
 
-*(Note: Dataset order in the UI follows sorted filename order plus the tactile reference map as dataset `8`.)*
+*(Dataset order `1`-`7` matches alphabetical filename discovery and keyboard shortcuts `[1]`-`[7]`, with the tactile reference map loaded as `[8]`.)*
 
 ---
 
@@ -34,16 +34,15 @@ Earth Jukebox ships with **7 NASA Earth Information Center (EIC) visualizations*
   - `Blue`: Clean air corridor or ocean zone (`< 10 ug/m3`)
   - `White`: Polar land mask or chart margin
 
-### 2. GEOS Global Aerosol Transport (Aug 2025)
-- **File**: `data/images/geos-aerosols-2025-08-19.png`
-- **Category**: Atmospheric Transport (NASA GEOS)
-- **Scientific Summary**: Global atmospheric aerosol transport simulation tracing marine sea salt, Saharan mineral dust, and biomass burning smoke.
+### 2. AIRS Global Tropospheric CO2 (365-435 ppm)
+- **File**: `data/images/airs-global-co2-60s.png`
+- **Category**: Greenhouse Gases (NASA Aqua / AIRS)
+- **Scientific Summary**: Mid-tropospheric carbon dioxide concentrations measured by NASA's AIRS instrument (`365` to `435 ppm`).
 - **Color Meanings**:
-  - `Red`: Intense wildfire smoke or concentrated biomass burning emission
-  - `Orange`: Saharan mineral dust plume (including violet dust plumes mapped to `Orange`) or warm smoke transport corridor
-  - `Green`: Marine sea-salt aerosol lifted by ocean storm winds
-  - `Blue`: Cyclonic sea-spray swirl or temperate marine aerosol
-  - `Black`: Calm background atmosphere with minimal aerosol load
+  - `Red`: Peak regional CO2 concentration approaching `435 ppm`
+  - `Orange`: Elevated tropospheric CO2 around `395` to `415 ppm`
+  - `Black`: Polar frame border or legend banner
+  - `White`: Baseline `365 ppm` scale floor
 
 ### 3. ECCO2 Perpetual Ocean Currents & Temperature
 - **File**: `data/images/ecco2-ocean-currents-grid.jpg`
@@ -78,15 +77,16 @@ Earth Jukebox ships with **7 NASA Earth Information Center (EIC) visualizations*
   - `White`: Unvegetated desert, polar snow, or ocean background mask
   - `Black`: Extreme wildfire core or polar shoreline
 
-### 6. AIRS Global Tropospheric CO2 (365-435 ppm)
-- **File**: `data/images/airs-global-co2-60s.png`
-- **Category**: Greenhouse Gases (NASA Aqua / AIRS)
-- **Scientific Summary**: Mid-tropospheric carbon dioxide concentrations measured by NASA's AIRS instrument (`365` to `435 ppm`).
+### 6. GEOS Global Aerosol Transport (Aug 2025)
+- **File**: `data/images/geos-aerosols-2025-08-19.png`
+- **Category**: Atmospheric Transport (NASA GEOS)
+- **Scientific Summary**: Global atmospheric aerosol transport simulation tracing marine sea salt, Saharan mineral dust, and biomass burning smoke.
 - **Color Meanings**:
-  - `Red`: Peak regional CO2 concentration approaching `435 ppm`
-  - `Orange`: Elevated tropospheric CO2 around `395` to `415 ppm`
-  - `Black`: Polar frame border or legend banner
-  - `White`: Baseline `365 ppm` scale floor
+  - `Red`: Intense wildfire smoke or concentrated biomass burning emission
+  - `Orange`: Saharan mineral dust plume (including violet dust plumes mapped to `Orange`) or warm smoke transport corridor
+  - `Green`: Marine sea-salt aerosol lifted by ocean storm winds
+  - `Blue`: Cyclonic sea-spray swirl or temperate marine aerosol
+  - `Black`: Calm background atmosphere with minimal aerosol load
 
 ### 7. NASA SVS 3D Carbon Dioxide Column (May 2021)
 - **File**: `data/images/svs-co2-column-2021-05-16.png`
