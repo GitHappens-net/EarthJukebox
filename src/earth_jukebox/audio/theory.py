@@ -99,6 +99,13 @@ COLOR_CHANNEL_PROGRAM: dict[str, tuple[int, int]] = {
     "Red": (7, 81),     # Lead 2 (Sawtooth)
 }
 
+# Warm colors add a controlled tension tone to the active chord while remaining
+# inside the shared C-natural-minor palette.
+COLOR_WARNING_INTERVALS: dict[str, int] = {
+    "Orange": 10,  # minor 7th
+    "Red": 14,     # natural 9th
+}
+
 
 @dataclass(frozen=True)
 class ChordVoicing:
@@ -220,10 +227,19 @@ def intensity_to_volume(intensity: float) -> float:
     return 0.15 + clamped * 0.80
 
 
+def _color_warning_tone(dominant_color: str, chord: ChordVoicing) -> int | None:
+    """Return the warm-color tension tone above the active chord root."""
+    interval = COLOR_WARNING_INTERVALS.get(dominant_color)
+    if interval is None:
+        return None
+    return snap_to_c_minor(chord.bass_note + interval + 24)
+
+
 def plan_chord_voicing(
     bar_index: int,
     intensity: float,
     sensor_size: int = 40,
+    dominant_color: str = "Blue",
 ) -> tuple[str, int, tuple[int, ...]]:
     """Return ``(chord_name, bass_note, active_pad_tones)`` shaped by intensity & cursor size.
 
@@ -247,6 +263,10 @@ def plan_chord_voicing(
         tones.append(snap_to_c_minor(chord.pad_tones[1] + 12))
         if i >= 0.55:
             tones.append(snap_to_c_minor(chord.pad_tones[2] + 12))
+
+    warning_tone = _color_warning_tone(dominant_color, chord)
+    if warning_tone is not None:
+        tones.append(warning_tone)
 
     return chord.name, snap_to_c_minor(chord.bass_note), tuple(dict.fromkeys(tones))
 
@@ -318,6 +338,9 @@ def _build_color_chord_pool(dominant_color: str, bar_index: int) -> tuple[int, .
     ]
     # Anchor the lowest and highest register bounds to the color's pitch range
     merged = sorted({*color_palette[:3], *blended[:4], color_palette[-1]})
+    warning_tone = _color_warning_tone(dominant_color, chord)
+    if warning_tone is not None:
+        merged = sorted({*merged, warning_tone})
     return tuple(merged)
 
 

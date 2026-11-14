@@ -377,6 +377,22 @@ def test_sensor_size_scales_voicing_spread_bass_depth_and_reverb() -> None:
     assert tight_dur <= wide_dur
 
 
+def test_warm_colors_add_chord_relative_warning_extensions() -> None:
+    _, bass, orange_tones = plan_chord_voicing(
+        0, 0.80, sensor_size=40, dominant_color="Orange"
+    )
+    _, _, red_tones = plan_chord_voicing(
+        0, 0.80, sensor_size=40, dominant_color="Red"
+    )
+
+    # The first progression chord is C: orange adds Bb (7th), red adds D (9th).
+    assert 70 in orange_tones
+    assert 74 in red_tones
+    assert bass == 36
+    assert all((tone % 12) in CMinorAudioEngine.C_MINOR_PITCH_CLASSES for tone in orange_tones)
+    assert all((tone % 12) in CMinorAudioEngine.C_MINOR_PITCH_CLASSES for tone in red_tones)
+
+
 # =============================================================================
 # 4. SEQUENCER ENGINE INTEGRATION TESTS (RecordingAudioBackend)
 # =============================================================================

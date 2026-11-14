@@ -161,6 +161,7 @@ def render_sonification_wav(
                 current_bar,
                 analysis.intensity,
                 sensor_size=sensor_size,
+                dominant_color=analysis.dominant_color,
             )
             pad_vel = int(round(36 + analysis.intensity * 44))
             pad_dur = SIXTEENTH_DURATION_SEC * 15.0

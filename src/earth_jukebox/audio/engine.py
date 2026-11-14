@@ -324,7 +324,10 @@ class CMinorAudioEngine:
 
             # 1. Veridis Quo Organ / Warm Pad Bed (Bar downbeat or cursor tier shift)
             chord_name, _bass_note, pad_tones = plan_chord_voicing(
-                bar_index, analysis.intensity, sensor_size
+                bar_index,
+                analysis.intensity,
+                sensor_size,
+                dominant_color=analysis.dominant_color,
             )
             if not was_touching or step_16 == 0 or sensor_tier != last_sensor_tier:
                 self._silence_pad_notes()
