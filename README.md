@@ -2,7 +2,7 @@
 
 **Real-time tactile and computer-vision sonification of NASA Earth Information Center (EIC) visualizations** -- built for the **2026 NASA Space Apps Challenge**.
 
-Earth Jukebox pairs a **3D-printed tactile world map** mounted over a Linux laptop trackpad (with a cross-platform mouse hover proxy for desktop exploration) with **real-time OpenCV patch analysis** and a **Daft Punk "Veridis Quo"-inspired C Natural Minor 90 BPM synthesizer**, accompanied by **spoken Text-to-Speech (TTS)** scientific interpretations for blind, low-vision, and sighted users.
+Earth Jukebox pairs a **3D-printed tactile world map** mounted over a Linux laptop trackpad (with a cross-platform mouse hover proxy for desktop exploration) with **real-time OpenCV patch analysis** and a **Daft Punk "Veridis Quo"-inspired C Natural Minor 75 BPM synthesizer**, accompanied by **spoken Text-to-Speech (TTS)** scientific interpretations for blind, low-vision, and sighted users.
 
 ---
 
@@ -10,7 +10,7 @@ Earth Jukebox pairs a **3D-printed tactile world map** mounted over a Linux lapt
 
 - **Tactile + Pointer Exploration**: Explore planetary data physically through a 3D-printed world map overlay (`hardware/tactile-map/`) on Linux `evdev` trackpads or seamlessly with a desktop mouse cursor.
 - **Real-Time Computer Vision**: Extracts a resizable sensor box (`16` to `160` px, default `40` px) and measures dominant color, intensity, edge density, spatial shape (`uniform`, `linear`, `circular`, `organic`), spottiness, and swirliness.
-- **Veridis Quo-Inspired 90 BPM Sonification**: Translates visual Earth features into a locked 90 BPM, C Natural Minor (`C, D, Eb, F, G, Ab, Bb`) baroque 8-bar progression (`Cm9 -> Fm7 -> Bb9 -> Ebmaj7 -> Abmaj7 -> Fm9 -> Dm7b5 -> Gm7`) with adaptive ambient percussion.
+- **Veridis Quo-Inspired 75 BPM Sonification**: Translates visual Earth features into a locked 75 BPM, C Natural Minor (`C, D, Eb, F, G, Ab, Bb`) baroque 8-bar progression (`Cm9 -> Fm7 -> Bb9 -> Ebmaj7 -> Abmaj7 -> Fm9 -> Dm7b5 -> Gm7`) with adaptive ambient percussion and steady loudness.
 - **Accessible by Design**: Non-blocking, interruptible TTS announces zone readings, scientific color meanings, and dataset briefings via keyboard shortcuts (`pyttsx3`, Windows `System.Speech`, or Linux `spd-say` / `espeak`).
 
 ---
@@ -105,7 +105,7 @@ EarthJukebox/
 |       |-- input/                  # CoordinateInputSource, mouse proxy, Linux evdev driver
 |       |-- datasets/               # DatasetManager and NASA EIC catalog.json
 |       |-- vision/                 # Edge-safe sensor box extraction and CVAnalyzer
-|       |-- audio/                  # C-minor music theory, MIDI backends, 90 BPM engine
+|       |-- audio/                  # C-minor music theory, MIDI backends, 75 BPM engine
 |       |-- accessibility/          # Threaded interruptible AccessibilityTTS
 |       `-- ui/                     # Fixed-size accessible Tkinter UI (EarthJukeboxApp)
 |-- tools/
@@ -119,7 +119,7 @@ EarthJukebox/
 ## Documentation
 
 - [Architecture & Linux evdev Hardware Guide](docs/architecture.md) -- Module breakdown, end-to-end data flow diagram, cross-platform design, and step-by-step Linux `evdev` setup.
-- [Sonification & Music Theory](docs/sonification.md) -- The Veridis Quo-inspired C Natural Minor 90 BPM progression, ambient percussion, and CV-to-music mappings.
+- [Sonification & Music Theory](docs/sonification.md) -- The Veridis Quo-inspired C Natural Minor 75 BPM progression, ambient percussion, and CV-to-music mappings.
 - [NASA EIC Datasets & Tactile Hardware](docs/datasets.md) -- Detailed catalog of all 7 NASA visualizations in `data/images/` plus the `hardware/tactile-map/` 3D models.
 
 ---

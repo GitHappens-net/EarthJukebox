@@ -126,7 +126,7 @@ Analyzes the patch around the received coordinates, updates `CMinorAudioEngine`,
       "harmony_note_name": "C5",
       "harmony_freq_hz": 523.2511,
       "velocity": 92,
-      "volume": 0.78,
+      "volume": 0.65,
       "motif": "Eighth Walk",
       "duration_sec": 0.4
     }

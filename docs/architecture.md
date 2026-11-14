@@ -12,7 +12,7 @@ Earth Jukebox is structured as a modular `src/` Python package (`earth_jukebox`)
 | `input/` | Abstract input stream, bounded queue helper, mouse & Linux `evdev` drivers | `CoordinateInputSource`, `push_latest_point`, `WindowsMouseInputProxy`, `EvdevTrackpadInputProxy`, `find_touchpad`, `read_touchpad` |
 | `datasets/` | Discovers NASA imagery, normalizes oversized frames, caches BGR arrays, binds metadata | `DatasetManager`, `catalog.json` |
 | `vision/` | Edge-safe sensor patch cropping and morphological/color feature extraction | `extract_sensor_box`, `CVAnalyzer` |
-| `audio/` | C Natural Minor scale/chord theory, cross-platform MIDI/synth backends, 90 BPM sequencer | `CMinorAudioEngine`, `AudioBackend`, `PygameMidiBackend`, `WinmmMidiBackend`, `LinuxFluidSynthBackend`, `PygameMixerSynthBackend`, `NullAudioBackend`, `create_best_audio_backend` |
+| `audio/` | C Natural Minor scale/chord theory, cross-platform MIDI/synth backends, 75 BPM sequencer | `CMinorAudioEngine`, `AudioBackend`, `PygameMidiBackend`, `WinmmMidiBackend`, `LinuxFluidSynthBackend`, `PygameMixerSynthBackend`, `NullAudioBackend`, `create_best_audio_backend` |
 | `accessibility/` | Non-blocking, interruptible speech worker with OS fallbacks | `AccessibilityTTS` |
 | `ui/` | Fixed-size (`992x770`) non-wobbling Tkinter canvas, HUD telemetry, scroll/keyboard controls | `EarthJukeboxApp` |
 | `cli.py` & `__main__.py` | Argument parsing (`--input`, `--device`, `--no-audio`, `--no-drums`, `--no-tts`, `--self-test`) and app startup | `parse_args`, `run_self_test`, `main` |
@@ -74,7 +74,7 @@ All runtime subsystems communicate using frozen dataclasses:
                   v                               v
 +-----------------------------------+   +---------------------------+
 | Audio Engine (audio/)             |   | Accessibility TTS         |
-|   CMinorAudioEngine (90 BPM clock)|   |   AccessibilityTTS        |
+|   CMinorAudioEngine (75 BPM clock)|   |   AccessibilityTTS        |
 |   - Veridis Quo 8-bar C-minor bed |   |   - pyttsx3               |
 |   - Adaptive melody & arpeggio    |   |   - Windows System.Speech |
 |   - Channel 9 ambient drums [D]   |   |   - Linux spd-say/espeak  |
@@ -87,7 +87,7 @@ flowchart LR
     Queue --> App["EarthJukeboxApp (UI Loop)"]
     Datasets["DatasetManager (data/images/)"] --> App
     App -->|ROI + sensor_size| Vision["CVAnalyzer + extract_sensor_box"]
-    Vision -->|AnalysisResult| Audio["CMinorAudioEngine (90 BPM C-Minor)"]
+    Vision -->|AnalysisResult| Audio["CMinorAudioEngine (75 BPM C-Minor)"]
     Vision -->|AnalysisResult| TTS["AccessibilityTTS (Spoken Readings)"]
     App -->|HUD + Canvas Overlay| Display["Fixed Tkinter Window"]
 ```

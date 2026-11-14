@@ -6,10 +6,10 @@ Earth Jukebox uses a structured, rule-driven musical engine (`CMinorAudioEngine`
 
 ## 1. Master Clock & C Natural Minor Quantization
 
-- **Tempo**: Constant **90 BPM** (`BPM = 90.0`).
+- **Tempo**: Constant **75 BPM** (`BPM = 75.0`).
 - **Beat Grid**:
-  - Quarter beat: `0.6667 s` (`60.0 / 90.0`)
-  - 16th-note step: `0.1667 s` (`BEAT_DURATION_SEC / 4.0`), 16 steps per 4/4 bar
+  - Quarter beat: `0.8 s` (`60.0 / 75.0`)
+  - 16th-note step: `0.2 s` (`BEAT_DURATION_SEC / 4.0`), 16 steps per 4/4 bar
 - **Scale Quantization**: Every MIDI pitch across pads, bass, arpeggiator, and data melody voices is strictly quantized to **C Natural Minor**:
   - Pitch classes: `C, D, Eb, F, G, Ab, Bb` (`{0, 2, 3, 5, 7, 8, 10}` mod 12).
   - Non-scale pitches are snapped to the nearest valid C Natural Minor scale degree (`snap_to_c_minor`), eliminating dissonant out-of-key clashes regardless of dataset or cursor position.
@@ -32,7 +32,7 @@ Bar 7 uses `Dm7b5` (`D - F - Ab - C`) and Bar 8 resolves to `Gm7` (`G - Bb - D -
 1. **Vintage Organ & Warm Pad Bed (`Channel 0` Drawbar Organ, `Channel 10` Warm Pad, `Channel 12` Church Organ)**: Holds dreamy 7th and 9th harmonic voicings on bar boundaries, enveloped with spatial MIDI Reverb (`CC 91`) and Chorus (`CC 93`).
 2. **French-Touch Synth Bass (`Channel 6` Synth Bass 1)**: Plays warm root/octave pulses locked to the 8-bar chord changes.
 3. **Baroque Arpeggiator & Data Lead Voices (`Channel 8` Square Lead Arp, `Channels 1-5, 7` Color Voices, `Channel 11` Spottiness Marimba)**: Cascading melodic patterns, harmonic turns, and staccato counter-accents driven in real time by the cursor's `AnalysisResult`.
-4. **Ambient Drum & Percussion Groove (MIDI Channel 9)**: Synced to the 90 BPM 16th-note clock and toggleable anytime with `[D]` (or disabled at launch via `--no-drums`):
+4. **Ambient Drum & Percussion Groove (MIDI Channel 9)**: Synced to the 75 BPM 16th-note clock and toggleable anytime with `[D]` (or disabled at launch via `--no-drums`):
    - Muted heartbeat kick (`36`)
    - Gentle rimshot / side-stick / clap backbeat (`37` / `39`)
    - Crisp closed and open hi-hats (`42` / `46`)
@@ -57,10 +57,10 @@ Bar 7 uses `Dm7b5` (`D - F - Ab - C`) and Bar 8 resolves to `Gm7` (`G - Bb - D -
 | `Orange` | Expressive high-mid (4th-5th octave) | Electric piano warmth (elevated CO2, mineral dust, moderate heat) |
 | `Red` | Peak upper register (5th-6th octave) | Lead synth highlight (extreme wildfire danger, peak CO2, thermal hotspots) |
 
-### `intensity` (`0.0` to `1.0`) -> Velocity, Brightness & Chord Fullness
+### `intensity` (`0.0` to `1.0`) -> Brightness & Chord Fullness
 
 - Derived from patch Value and Saturation (`0.65 * mean_v + 0.35 * mean_s`).
-- Scales MIDI note velocity (`30` to `127`), MIDI Expression (`CC 11`) / Filter Brightness (`CC 74`), and harmonic chord density.
+- Controls filter brightness (`CC 74`) and harmonic chord density. MIDI velocity and Expression (`CC 11`) remain fixed so loudness does not fluctuate with image intensity.
 
 ### `density` (`0.0` to `1.0`) -> Rhythmic Subdivision & Percussion Activity
 
