@@ -145,7 +145,10 @@ class EarthJukeboxApp:
         self.input_source.start()
 
         self.source_label.configure(
-            text=f"Input: {self.input_source.source_name}  |  Audio: {self.audio_engine.backend.backend_name}"
+            text=(
+                f"Input: {self.input_source.source_name}  |  "
+                f"Audio: {self.audio_engine.backend.backend_name}"
+            )
         )
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self._poll_after_id = self.root.after(16, self._poll_input_and_update)
@@ -338,9 +341,21 @@ class EarthJukeboxApp:
             )
 
         # Sensor box resize: keyboard (+, =, KP_Add, ] to grow; -, _, KP_Subtract, [ to shrink)
-        for seq in ("<KeyPress-plus>", "<KeyPress-equal>", "<KeyPress-KP_Add>", "<KeyPress-bracketright>"):
+        grow_keys = (
+            "<KeyPress-plus>",
+            "<KeyPress-equal>",
+            "<KeyPress-KP_Add>",
+            "<KeyPress-bracketright>",
+        )
+        shrink_keys = (
+            "<KeyPress-minus>",
+            "<KeyPress-underscore>",
+            "<KeyPress-KP_Subtract>",
+            "<KeyPress-bracketleft>",
+        )
+        for seq in grow_keys:
             self.root.bind(seq, self._on_grow_sensor_box)
-        for seq in ("<KeyPress-minus>", "<KeyPress-underscore>", "<KeyPress-KP_Subtract>", "<KeyPress-bracketleft>"):
+        for seq in shrink_keys:
             self.root.bind(seq, self._on_shrink_sensor_box)
 
         # Sensor box resize: mouse wheel (Windows/macOS + Linux X11 Button-4/5)
@@ -359,7 +374,8 @@ class EarthJukeboxApp:
     def _on_read_zone(self, _event: Optional["tk.Event"]) -> str:
         if not self._latest_analysis.touching:
             self.tts.speak(
-                "Cursor is outside the map area. Hover over the visualization or press P for auto-scan.",
+                "Cursor is outside the map area. "
+                "Hover over the visualization or press P for auto-scan.",
                 interrupt=True,
             )
         else:
@@ -379,13 +395,18 @@ class EarthJukeboxApp:
     def _on_toggle_auto_scan(self, _event: Optional["tk.Event"]) -> str:
         self._auto_scan_enabled = not self._auto_scan_enabled
         self._last_scan_tick = time.monotonic()
-        state_msg = "Auto-scan jukebox play started." if self._auto_scan_enabled else "Auto-scan paused."
+        state_msg = (
+            "Auto-scan jukebox play started."
+            if self._auto_scan_enabled
+            else "Auto-scan paused."
+        )
         self.tts.speak(state_msg, interrupt=True)
         return "break"
 
     def _on_toggle_drums(self, _event: Optional["tk.Event"]) -> str:
         enabled = self.audio_engine.toggle_drums()
-        self.tts.speak("Ambient drums enabled." if enabled else "Ambient drums muted.", interrupt=True)
+        msg = "Ambient drums enabled." if enabled else "Ambient drums muted."
+        self.tts.speak(msg, interrupt=True)
         return "break"
 
     def _on_tab_dataset(self, _event: Optional["tk.Event"]) -> str:
@@ -445,7 +466,10 @@ class EarthJukeboxApp:
             )
             self.audio_engine.update_analysis(self._latest_analysis)
             self.telemetry_label.configure(
-                text=f"Hover over a NASA map or press [P] for Auto-Scan  |  Box={self.sensor_size}px"
+                text=(
+                    "Hover over a NASA map or press [P] for Auto-Scan  "
+                    f"|  Box={self.sensor_size}px"
+                )
             )
             self.morphology_label.configure(
                 text=f"Box={self.sensor_size}px  |  Shape=--  |  Spot=--  |  Swirl=--"
