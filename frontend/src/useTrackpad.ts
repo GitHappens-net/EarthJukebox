@@ -1,5 +1,6 @@
 import type { PointerEvent } from "react";
 import { useEffect, useState } from "react";
+import { getJukeboxApi } from "./api";
 
 export type PadState = {
   x: number;
@@ -34,12 +35,19 @@ export function useTrackpad() {
   const onFallbackPointer = (event: PointerEvent<HTMLElement>, touching: boolean) => {
     if (isDesktopApp) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    setPad({
+    const nextPad = {
       x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
       y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)),
       touching,
       fingers: touching ? 1 : 0,
-    });
+    };
+    setPad(nextPad);
+    void getJukeboxApi()?.update_pad(
+      nextPad.x,
+      nextPad.y,
+      nextPad.touching,
+      nextPad.fingers,
+    );
   };
 
   return { pad, isDesktopApp, onFallbackPointer };

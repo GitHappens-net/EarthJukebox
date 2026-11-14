@@ -9,7 +9,12 @@ import threading
 import time
 from dataclasses import dataclass
 from typing import Optional
-from evdev import InputDevice, ecodes, list_devices
+try:
+    from evdev import InputDevice, ecodes, list_devices
+except ImportError:
+    InputDevice = None
+    ecodes = None
+    list_devices = None
 
 @dataclass(frozen=True)
 class TouchPoint:
@@ -23,6 +28,8 @@ PadState = dict[str, float | bool | int]
 pad_state: PadState = {"x": 0.5, "y": 0.5, "touching": False, "fingers": 0}
 
 def _absolute_codes(device: InputDevice) -> set[int]:
+    if ecodes is None:
+        raise RuntimeError("Linux evdev input is unavailable on this platform.")
     return {code for code, _ in device.capabilities().get(ecodes.EV_ABS, [])}
 
 def _has_coordinates(device: InputDevice) -> bool:
@@ -36,6 +43,10 @@ def _has_coordinates(device: InputDevice) -> bool:
     )
 
 def find_touchpad(path: Optional[str]) -> InputDevice:
+    if InputDevice is None or ecodes is None or list_devices is None:
+        raise RuntimeError(
+            "Raw evdev input is only available on Linux. Use --input browser instead."
+        )
     if path:
         device = InputDevice(path)
         if not _has_coordinates(device):
@@ -69,6 +80,8 @@ def find_touchpad(path: Optional[str]) -> InputDevice:
     return candidates[0]
 
 def _axis_codes(device: InputDevice) -> tuple[int, int]:
+    if ecodes is None:
+        raise RuntimeError("Linux evdev input is unavailable on this platform.")
     absolute_codes = _absolute_codes(device)
     if {ecodes.ABS_X, ecodes.ABS_Y}.issubset(absolute_codes):
         return ecodes.ABS_X, ecodes.ABS_Y
@@ -77,6 +90,8 @@ def _axis_codes(device: InputDevice) -> tuple[int, int]:
 def read_touchpad(
     device: InputDevice, points: queue.Queue[TouchPoint], stop: threading.Event
 ) -> None:
+    if ecodes is None:
+        raise RuntimeError("Linux evdev input is unavailable on this platform.")
     x_code, y_code = _axis_codes(device)
     x_info = device.absinfo(x_code)
     y_info = device.absinfo(y_code)
@@ -148,6 +163,14 @@ class JukeboxAPI:
         pad_state.update(x=0.5, y=0.5, touching=False, fingers=0)
         return "Pad calibrated"
 
+    def update_pad(self, x: float, y: float, touching: bool, fingers: int) -> None:
+        pad_state.update(
+            x=max(0.0, min(1.0, x)),
+            y=max(0.0, min(1.0, y)),
+            touching=touching,
+            fingers=max(0, fingers),
+        )
+
 def resolve_ui_url() -> str:
     if "--dev" in sys.argv:
         return "http://localhost:5173"
@@ -176,7 +199,13 @@ def stream_trackpad_to_ui(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Show raw coordinates from a Linux touchpad in a React UI."
+        description="Show touchpad coordinates in a React UI."
+    )
+    parser.add_argument(
+        "--input",
+        choices=("auto", "evdev", "browser"),
+        default="auto",
+        help="Input source: raw Linux evdev, browser pointer events, or auto-detect.",
     )
     parser.add_argument(
         "--device",
@@ -185,22 +214,27 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        device = find_touchpad(args.device)
         points: queue.Queue[TouchPoint] = queue.Queue(maxsize=2)
         stop = threading.Event()
         reader_error: list[Exception] = []
+        input_mode = args.input
+        if input_mode == "auto":
+            input_mode = "evdev" if sys.platform.startswith("linux") else "browser"
 
-        def reader() -> None:
-            try:
-                read_touchpad(device, points, stop)
-            except Exception as exc:
-                reader_error.append(exc)
-                stop.set()
+        if input_mode == "evdev":
+            device = find_touchpad(args.device)
 
-        threading.Thread(target=reader, daemon=True).start()
-        threading.Thread(
-            target=_update_pad_state, args=(points, stop), daemon=True
-        ).start()
+            def reader() -> None:
+                try:
+                    read_touchpad(device, points, stop)
+                except Exception as exc:
+                    reader_error.append(exc)
+                    stop.set()
+
+            threading.Thread(target=reader, daemon=True).start()
+            threading.Thread(
+                target=_update_pad_state, args=(points, stop), daemon=True
+            ).start()
 
         window = webview.create_window(
             title="Earth Information Jukebox",
