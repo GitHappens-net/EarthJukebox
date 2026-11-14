@@ -203,10 +203,10 @@ def test_all_midi_notes_and_8_bar_veridis_quo_chords_strictly_c_minor() -> None:
             )
 
 
-def test_color_octave_ordering_and_90_bpm_beat_grid() -> None:
-    assert CMinorAudioEngine.BPM == pytest.approx(90.0)
-    assert CMinorAudioEngine.BEAT_DURATION_SEC == pytest.approx(60.0 / 90.0)
-    assert CMinorAudioEngine.SIXTEENTH_DURATION_SEC == pytest.approx((60.0 / 90.0) / 4.0)
+def test_color_octave_ordering_and_75_bpm_beat_grid() -> None:
+    assert CMinorAudioEngine.BPM == pytest.approx(75.0)
+    assert CMinorAudioEngine.BEAT_DURATION_SEC == pytest.approx(60.0 / 75.0)
+    assert CMinorAudioEngine.SIXTEENTH_DURATION_SEC == pytest.approx((60.0 / 75.0) / 4.0)
 
     cool_avg = float(np.mean(CMinorAudioEngine.COLOR_PITCH_MAP["Blue"]))
     warm_avg = float(np.mean(CMinorAudioEngine.COLOR_PITCH_MAP["Red"]))
@@ -229,9 +229,9 @@ def test_intensity_maps_to_velocity_volume_and_filter_ccs() -> None:
     vol_low = CMinorAudioEngine.intensity_to_volume(0.0)
     vol_high = CMinorAudioEngine.intensity_to_volume(1.0)
 
-    assert v_low < v_high
+    assert v_low == v_high
     assert 0 <= v_low <= 127 and 0 <= v_high <= 127
-    assert vol_low < vol_high
+    assert vol_low == vol_high
     assert 0.0 <= vol_low <= 1.0 and 0.0 <= vol_high <= 1.0
 
     low_res = AnalysisResult(dominant_color="Orange", intensity=0.1, density=0.5)
@@ -239,7 +239,7 @@ def test_intensity_maps_to_velocity_volume_and_filter_ccs() -> None:
     low_ccs = compute_expression_ccs(low_res, step_16=0)
     high_ccs = compute_expression_ccs(high_res, step_16=0)
     assert high_ccs["brightness"] > low_ccs["brightness"]
-    assert high_ccs["expression"] > low_ccs["expression"]
+    assert high_ccs["expression"] == low_ccs["expression"]
 
 
 # =============================================================================

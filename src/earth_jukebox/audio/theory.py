@@ -2,7 +2,7 @@
 
 All pitches, chords, arpeggios, basslines, and syncopated counter-melodies are
 strictly quantized to **C Natural Minor** (``C, D, Eb, F, G, Ab, Bb`` ->
-pitch classes ``{0, 2, 3, 5, 7, 8, 10}``) on a locked **90 BPM** 16th-note grid.
+pitch classes ``{0, 2, 3, 5, 7, 8, 10}``) on a locked **75 BPM** 16th-note grid.
 """
 
 from __future__ import annotations
@@ -38,9 +38,11 @@ except ImportError:  # pragma: no cover - standalone fallback prior to scaffold 
 # =============================================================================
 # MASTER CLOCK & C NATURAL MINOR SCALE CONSTANTS
 # =============================================================================
-BPM: float = 90.0
-BEAT_DURATION_SEC: float = 60.0 / BPM                 # 0.6667s per quarter beat
-SIXTEENTH_DURATION_SEC: float = BEAT_DURATION_SEC / 4.0  # 0.1667s per 16th step
+BPM: float = 75.0
+BEAT_DURATION_SEC: float = 60.0 / BPM                 # 0.8s per quarter beat
+SIXTEENTH_DURATION_SEC: float = BEAT_DURATION_SEC / 4.0  # 0.2s per 16th step
+FIXED_VELOCITY: int = 88
+FIXED_VOLUME: float = 0.65
 
 # Strict C Natural Minor pitch classes: C, D, Eb, F, G, Ab, Bb
 C_MINOR_PITCH_CLASSES: frozenset[int] = frozenset({0, 2, 3, 5, 7, 8, 10})
@@ -203,7 +205,7 @@ def select_rhythm(density: float) -> tuple[str, float]:
 
 
 def should_trigger_data_step(density: float, step_16: int) -> bool:
-    """Return True when the data melody falls cleanly on the 90 BPM beat grid."""
+    """Return True when the data melody falls cleanly on the 75 BPM beat grid."""
     step = step_16 % 16
     d = _clamp01(density)
     if d < 0.12:
@@ -216,15 +218,13 @@ def should_trigger_data_step(density: float, step_16: int) -> bool:
 
 
 def intensity_to_velocity(intensity: float) -> int:
-    """Map brightness/saturation intensity ``[0.0, 1.0]`` to MIDI velocity."""
-    clamped = _clamp01(intensity)
-    return int(round(30 + clamped * 97))
+    """Return a stable MIDI velocity; intensity no longer changes loudness."""
+    return FIXED_VELOCITY
 
 
 def intensity_to_volume(intensity: float) -> float:
-    """Map intensity ``[0.0, 1.0]`` to normalized scalar amplitude."""
-    clamped = _clamp01(intensity)
-    return 0.15 + clamped * 0.80
+    """Return a stable normalized amplitude; intensity no longer changes loudness."""
+    return FIXED_VOLUME
 
 
 def _color_warning_tone(dominant_color: str, chord: ChordVoicing) -> int | None:
@@ -288,8 +288,7 @@ def plan_bass_step(
     fifth = snap_to_c_minor(root + 7)
     step = step_16 % 16
     d = _clamp01(density)
-    i = _clamp01(intensity)
-    base_vel = int(round(46 + i * 42))
+    base_vel = FIXED_VELOCITY
 
     hits: list[tuple[int, int]] = []
     if d < 0.25:
@@ -450,7 +449,7 @@ def plan_baroque_arpeggio(
     elif analysis.dominant_color == "Black" and note >= 68:
         note = snap_to_c_minor(note - 12)
 
-    vel = int(round(38 + i * 56))
+    vel = FIXED_VELOCITY
     if step_16 % 4 == 0:
         vel = min(127, vel + 10)
 
@@ -478,7 +477,7 @@ def plan_spottiness_accents(
     base_tone = chord.arp_tones[slot_idx % len(chord.arp_tones)]
     oct_adjust = 12 if slot_idx % 2 == 1 else 0
     pitch = snap_to_c_minor(base_tone + oct_adjust)
-    vel = int(round(36 + spot * 52 + _clamp01(analysis.intensity) * 25))
+    vel = FIXED_VELOCITY
     return pitch, min(127, vel)
 
 
@@ -488,60 +487,59 @@ def plan_ambient_drums(
     step_16: int,
     spottiness: float = 0.0,
 ) -> list[tuple[int, int]]:
-    """Generate a 90 BPM Veridis Quo-inspired French-house/downtempo drum groove."""
+    """Generate a 75 BPM Veridis Quo-inspired French-house/downtempo drum groove."""
     step = step_16 % 16
     d = _clamp01(density)
-    i = _clamp01(intensity)
     spot = _clamp01(spottiness)
     hits: list[tuple[int, int]] = []
 
     # Warm muted four-on-the-floor kick (or breathing half-time at very low density)
     if d < 0.25:
         if step == 0:
-            hits.append((DRUM_KICK, int(round(52 + 34 * i))))
+            hits.append((DRUM_KICK, FIXED_VELOCITY))
     elif d < 0.50:
         if step in (0, 8):
-            hits.append((DRUM_KICK, int(round(54 + 34 * i))))
+            hits.append((DRUM_KICK, FIXED_VELOCITY))
         elif step == 10:
-            hits.append((DRUM_KICK, int(round(40 + 26 * i))))
+            hits.append((DRUM_KICK, FIXED_VELOCITY))
     else:
         if step in (0, 4, 8, 12):
-            hits.append((DRUM_KICK, int(round(58 + 36 * i))))
+            hits.append((DRUM_KICK, FIXED_VELOCITY))
         elif step in (6, 14) and d >= 0.78:
-            hits.append((DRUM_KICK, int(round(38 + 24 * i))))
+            hits.append((DRUM_KICK, FIXED_VELOCITY))
 
     # Gentle rimshot + soft clap backbeat on Beats 2 and 4
     if step in (4, 12):
-        hits.append((DRUM_RIM, int(round(36 + 34 * i))))
+        hits.append((DRUM_RIM, FIXED_VELOCITY))
         if d >= 0.45:
-            hits.append((DRUM_CLAP, int(round(28 + 30 * i))))
+            hits.append((DRUM_CLAP, FIXED_VELOCITY))
 
     # Crisp hi-hat & shaker subdivision scaled by visual density
     if d < 0.30:
         if step in (0, 4, 8, 12):
-            hits.append((DRUM_SHAKER, int(round(26 + 22 * i))))
+            hits.append((DRUM_SHAKER, FIXED_VELOCITY))
     elif d <= 0.70:
         if step in (2, 6, 10, 14):
             hat = DRUM_HAT_OPEN if step == 14 else DRUM_HAT_CLOSED
-            hits.append((hat, int(round(32 + 26 * i))))
+            hits.append((hat, FIXED_VELOCITY))
         elif step % 2 == 0:
-            hits.append((DRUM_HAT_CLOSED, int(round(26 + 22 * i))))
+            hits.append((DRUM_HAT_CLOSED, FIXED_VELOCITY))
     else:
         if step == 14:
-            hits.append((DRUM_HAT_OPEN, int(round(40 + 30 * i))))
+            hits.append((DRUM_HAT_OPEN, FIXED_VELOCITY))
         elif step % 2 == 0:
-            hits.append((DRUM_HAT_CLOSED, int(round(34 + 30 * i))))
+            hits.append((DRUM_HAT_CLOSED, FIXED_VELOCITY))
         else:
-            hits.append((DRUM_SHAKER, int(round(28 + 24 * i))))
+            hits.append((DRUM_SHAKER, FIXED_VELOCITY))
 
     # Spottiness injects crisp percussion ghost-notes, conga & tambourine sparkles
     if spot >= 0.35:
         if step in (3, 7, 11, 15):
-            hits.append((DRUM_TAMBOURINE, int(round(28 + 42 * spot))))
+            hits.append((DRUM_TAMBOURINE, FIXED_VELOCITY))
         if step in (6, 15) and (d > 0.40 or spot >= 0.60):
-            hits.append((DRUM_CONGA_HI, int(round(38 + 36 * spot))))
+            hits.append((DRUM_CONGA_HI, FIXED_VELOCITY))
     elif d > 0.70 and step in (6, 15):
-        hits.append((DRUM_CONGA_HI, int(round(36 + 28 * i))))
+        hits.append((DRUM_CONGA_HI, FIXED_VELOCITY))
 
     return hits
 
@@ -562,7 +560,7 @@ def compute_expression_ccs(analysis: AnalysisResult, step_16: int) -> dict[str, 
     chorus = int(round(25 + swirl * 92))
     modulation = int(round(swirl * 72))
     brightness = int(round(42 + i * 82))      # CC 74 Filter Cutoff
-    expression = int(round(58 + i * 68))      # CC 11 Expression
+    expression = FIXED_VELOCITY                # CC 11 Expression
 
     if swirl >= 0.15:
         phase = (step_16 % 16) / 16.0 * 2.0 * math.pi

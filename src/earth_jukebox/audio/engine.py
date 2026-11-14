@@ -1,4 +1,4 @@
-"""Beat-synchronized 90 BPM C-Minor sequencer engine inspired by Veridis Quo."""
+"""Beat-synchronized 75 BPM C-Minor sequencer engine inspired by Veridis Quo."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ from earth_jukebox.audio.theory import (
 
 
 class CMinorAudioEngine:
-    """Locked 90 BPM 16th-note Veridis Quo-inspired C-Minor polyphonic sequencer."""
+    """Locked 75 BPM 16th-note Veridis Quo-inspired C-Minor polyphonic sequencer."""
 
     BPM: float = BPM
     BEAT_DURATION_SEC: float = BEAT_DURATION_SEC
@@ -126,7 +126,7 @@ class CMinorAudioEngine:
         self._data_step_index = 0
         self._arp_step_index = 0
         self._beat_info = (0, 0)  # (bar_0..7, beat_0..3)
-        self._current_telemetry = "90 BPM | Standby"
+        self._current_telemetry = "75 BPM | Standby"
         self._melodic_channels: tuple[int, ...] = ()
 
     @property
@@ -195,7 +195,7 @@ class CMinorAudioEngine:
         self.backend.close()
 
     def update_analysis(self, result: AnalysisResult) -> None:
-        """Update the target CV metrics consumed on the 90 BPM beat grid."""
+        """Update the target CV metrics consumed on the 75 BPM beat grid."""
         with self._lock:
             self._latest_analysis = result
 
@@ -332,7 +332,7 @@ class CMinorAudioEngine:
             if not was_touching or step_16 == 0 or sensor_tier != last_sensor_tier:
                 self._silence_pad_notes()
                 last_sensor_tier = sensor_tier
-                pad_vel = int(round(32 + max(0.0, min(1.0, analysis.intensity)) * 28))
+                pad_vel = self.intensity_to_velocity(analysis.intensity)
                 for tone in pad_tones:
                     q_tone = self.snap_to_c_minor(tone)
                     self.backend.note_on(self.PAD_CHANNEL, q_tone, pad_vel)

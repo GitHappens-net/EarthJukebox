@@ -19,6 +19,7 @@ from earth_jukebox.audio.theory import (
     DRUM_KICK,
     DRUM_LOW_TOM,
     DRUM_RIM,
+    intensity_to_velocity,
     SIXTEENTH_DURATION_SEC,
     VERIDIS_QUO_PROGRESSION,
     midi_to_freq,
@@ -163,7 +164,7 @@ def render_sonification_wav(
                 sensor_size=sensor_size,
                 dominant_color=analysis.dominant_color,
             )
-            pad_vel = int(round(36 + analysis.intensity * 44))
+            pad_vel = intensity_to_velocity(analysis.intensity)
             pad_dur = SIXTEENTH_DURATION_SEC * 15.0
             for note in pad_notes:
                 _add_tone(mix, start_sample, pad_dur, midi_to_freq(note), pad_vel, "pad", sr)

@@ -300,7 +300,7 @@ class EarthJukeboxApp:
 
         self.audio_label = tk.Label(
             hud_row_bottom,
-            text="90 BPM | Veridis Quo C-Minor | Standby",
+            text="75 BPM | Veridis Quo C-Minor | Standby",
             fg="#7dd3fc",
             bg="#1e293b",
             font=(self._mono_family, 9, "bold"),

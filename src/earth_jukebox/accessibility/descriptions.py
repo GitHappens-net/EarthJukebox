@@ -10,7 +10,7 @@ AUDIO_LEGEND_TEXT = (
     "Earth Jukebox: 75 BPM C natural minor sonification. "
     "Cool blues and greens play lower warm octaves; warm reds and oranges play higher registers. "
     "Low density sustains long chords, medium density plays eighth-note pulses, and high density "
-    "plays sixteenth-note arpeggios. Intensity controls volume and brightness. "
+    "plays sixteenth-note arpeggios. Intensity controls brightness while loudness stays steady. "
     "Swirliness adds harmonic arpeggio motion, spottiness adds octave bell accents, and shape "
     "selects timbre. Shortcuts: Space for legend, R to read current zone, I for dataset info, "
     "P for auto-scan, D for drums, plus or minus to resize sensor box, Tab or 1-8 for dataset."

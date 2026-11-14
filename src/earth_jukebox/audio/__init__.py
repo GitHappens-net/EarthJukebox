@@ -1,4 +1,4 @@
-"""Audio backends, Veridis Quo-inspired C-minor theory, and 90 BPM sequencer."""
+"""Audio backends, Veridis Quo-inspired C-minor theory, and 75 BPM sequencer."""
 
 from earth_jukebox.audio.backends import (
     AudioBackend,

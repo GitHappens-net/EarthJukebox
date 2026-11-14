@@ -21,6 +21,7 @@ from earth_jukebox.audio import (
     VERIDIS_QUO_PROGRESSION,
     compute_expression_ccs,
     create_best_audio_backend,
+    intensity_to_velocity,
     midi_to_freq,
     midi_to_note_name,
     plan_baroque_arpeggio,
@@ -267,7 +268,7 @@ class SonificationService:
             analysis.intensity,
             sensor_size=sensor_size,
         )
-        pad_vel = int(round(36 + analysis.intensity * 44))
+        pad_vel = intensity_to_velocity(analysis.intensity)
         bass_hits = plan_bass_step(
             bar_index,
             analysis.density,
