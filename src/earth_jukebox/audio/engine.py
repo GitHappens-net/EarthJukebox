@@ -162,12 +162,19 @@ class CMinorAudioEngine:
         for channel, program in self.COLOR_CHANNEL_PROGRAM.values():
             channel_programs[channel] = program
 
-        self._melodic_channels = tuple(sorted(ch for ch in channel_programs if ch != self.DRUM_CHANNEL))
+        self._melodic_channels = tuple(
+            sorted(ch for ch in channel_programs if ch != self.DRUM_CHANNEL)
+        )
         self.backend.start(channel_programs)
 
         # Initial Veridis Quo warm reverb & chorus spatial setup
         for ch in set(channel_programs) | {self.DRUM_CHANNEL}:
-            reverb = 82 if ch in (self.PAD_CHANNEL, self.WARM_PAD_CHANNEL) else (42 if ch == self.DRUM_CHANNEL else 68)
+            if ch in (self.PAD_CHANNEL, self.WARM_PAD_CHANNEL):
+                reverb = 82
+            elif ch == self.DRUM_CHANNEL:
+                reverb = 42
+            else:
+                reverb = 68
             self.backend.control_change(ch, 91, reverb)
             if ch != self.DRUM_CHANNEL:
                 self.backend.control_change(ch, 93, 35)
@@ -382,7 +389,11 @@ class CMinorAudioEngine:
 
             # 6. Beat-Synchronized Primary Color Data Sonification Voice
             rhythm_name, beats = self.select_rhythm(analysis.density)
-            if not was_touching or rhythm_name != last_rhythm_tier or analysis.dominant_color != last_color:
+            if (
+                not was_touching
+                or rhythm_name != last_rhythm_tier
+                or analysis.dominant_color != last_color
+            ):
                 pending_entry_trigger = True
                 last_rhythm_tier = rhythm_name
                 last_color = analysis.dominant_color

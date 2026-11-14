@@ -121,7 +121,9 @@ def test_backends_import_and_fallback_cleanly_on_linux(monkeypatch: pytest.Monke
 
     # Load a fresh module instance under simulated Linux without mutating shared classes
     backends_path = SRC_DIR / "earth_jukebox" / "audio" / "backends.py"
-    spec = importlib.util.spec_from_file_location("earth_jukebox_audio_backends_linux", backends_path)
+    spec = importlib.util.spec_from_file_location(
+        "earth_jukebox_audio_backends_linux", backends_path
+    )
     assert spec is not None and spec.loader is not None
     linux_backends = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(linux_backends)
