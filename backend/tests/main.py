@@ -1,18 +1,27 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import queue
 import sys
 import threading
-import tkinter as tk
+import time
 from dataclasses import dataclass
 from typing import Optional
+
+try:
+    import webview
+except ImportError as exc:
+    raise SystemExit(
+        "This app requires pywebview. Install it with: python3 -m pip install pywebview"
+    ) from exc
 
 try:
     from evdev import InputDevice, ecodes, list_devices
 except ImportError as exc:
     raise SystemExit(
-        "This script requires python-evdev. Install it with: python3 -m pip install evdev"
+        "This app requires python-evdev. Install it with: python3 -m pip install evdev"
     ) from exc
 
 
@@ -25,22 +34,29 @@ class TouchPoint:
     touching: bool
 
 
+PadState = dict[str, float | bool | int]
+pad_state: PadState = {"x": 0.5, "y": 0.5, "touching": False, "fingers": 0}
+
+
 def _absolute_codes(device: InputDevice) -> set[int]:
     return {code for code, _ in device.capabilities().get(ecodes.EV_ABS, [])}
+
+
+def _has_coordinates(device: InputDevice) -> bool:
+    absolute_codes = _absolute_codes(device)
+    return (
+        {ecodes.ABS_X, ecodes.ABS_Y}.issubset(absolute_codes)
+        or {
+            ecodes.ABS_MT_POSITION_X,
+            ecodes.ABS_MT_POSITION_Y,
+        }.issubset(absolute_codes)
+    )
 
 
 def find_touchpad(path: Optional[str]) -> InputDevice:
     if path:
         device = InputDevice(path)
-        absolute_codes = _absolute_codes(device)
-        has_coordinates = (
-            {ecodes.ABS_X, ecodes.ABS_Y}.issubset(absolute_codes)
-            or {
-                ecodes.ABS_MT_POSITION_X,
-                ecodes.ABS_MT_POSITION_Y,
-            }.issubset(absolute_codes)
-        )
-        if not has_coordinates:
+        if not _has_coordinates(device):
             raise RuntimeError(
                 f"{path} does not expose absolute touch coordinates. "
                 "Choose the raw touchpad event device instead of its mouse "
@@ -51,17 +67,9 @@ def find_touchpad(path: Optional[str]) -> InputDevice:
     candidates: list[InputDevice] = []
     for device_path in list_devices():
         device = InputDevice(device_path)
-        absolute_codes = _absolute_codes(device)
         keys = set(device.capabilities().get(ecodes.EV_KEY, []))
-        has_coordinates = (
-            {ecodes.ABS_X, ecodes.ABS_Y}.issubset(absolute_codes)
-            or {
-                ecodes.ABS_MT_POSITION_X,
-                ecodes.ABS_MT_POSITION_Y,
-            }.issubset(absolute_codes)
-        )
         has_touch_button = ecodes.BTN_TOUCH in keys or ecodes.BTN_TOOL_FINGER in keys
-        if has_coordinates and (
+        if _has_coordinates(device) and (
             has_touch_button or "touchpad" in device.name.lower()
         ):
             candidates.append(device)
@@ -92,16 +100,18 @@ def read_touchpad(
     x_code, y_code = _axis_codes(device)
     x_info = device.absinfo(x_code)
     y_info = device.absinfo(y_code)
-    if x_info is None or y_info is None or x_info.max <= x_info.min:
-        raise RuntimeError(f"Could not read coordinate range from {device.path}.")
-    if y_info.max <= y_info.min:
+    if (
+        x_info is None
+        or y_info is None
+        or x_info.max <= x_info.min
+        or y_info.max <= y_info.min
+    ):
         raise RuntimeError(f"Could not read coordinate range from {device.path}.")
 
     x = x_info.min
     y = y_info.min
-    has_touch_signal = ecodes.BTN_TOUCH in device.capabilities().get(
-        ecodes.EV_KEY, []
-    ) or ecodes.BTN_TOOL_FINGER in device.capabilities().get(ecodes.EV_KEY, [])
+    keys = device.capabilities().get(ecodes.EV_KEY, [])
+    has_touch_signal = ecodes.BTN_TOUCH in keys or ecodes.BTN_TOOL_FINGER in keys
     touching = not has_touch_signal
 
     for event in device.read_loop():
@@ -131,59 +141,65 @@ def read_touchpad(
             )
 
 
-class TouchpadView:
-    def __init__(
-        self,
-        root: tk.Tk,
-        device: InputDevice,
-        points: queue.Queue[TouchPoint],
-        stop: threading.Event,
-    ) -> None:
-        self.root = root
-        self.device = device
-        self.points = points
-        self.stop = stop
-        self.canvas = tk.Canvas(
-            root, width=600, height=400, background="#20252b", highlightthickness=0
-        )
-        self.canvas.pack(padx=16, pady=(16, 8))
-        self.dot = self.canvas.create_oval(0, 0, 0, 0, fill="#48d1cc", outline="")
-        self.status = tk.Label(root, text=f"{device.name}  [{device.path}]")
-        self.status.pack(pady=(0, 12))
-        root.protocol("WM_DELETE_WINDOW", self.close)
-        self.update()
-
-    def update(self) -> None:
+def _update_pad_state(points: queue.Queue[TouchPoint], stop: threading.Event) -> None:
+    while not stop.is_set():
         try:
-            while True:
-                point = self.points.get_nowait()
-                if point.touching:
-                    width = self.canvas.winfo_width()
-                    height = self.canvas.winfo_height()
-                    x = point.x_ratio * width
-                    y = point.y_ratio * height
-                    radius = 8
-                    self.canvas.coords(
-                        self.dot, x - radius, y - radius, x + radius, y + radius
-                    )
-                    self.canvas.itemconfigure(self.dot, state="normal")
-                    self.status.configure(text=f"{self.device.name}  x={point.x}  y={point.y}")
-                else:
-                    self.canvas.itemconfigure(self.dot, state="hidden")
-                    self.status.configure(text=f"{self.device.name}  (not touching)")
+            point = points.get(timeout=0.1)
         except queue.Empty:
-            pass
-        if not self.stop.is_set():
-            self.root.after(16, self.update)
+            continue
+        pad_state.update(
+            x=point.x_ratio,
+            y=point.y_ratio,
+            touching=point.touching,
+            fingers=1 if point.touching else 0,
+        )
 
-    def close(self) -> None:
-        self.stop.set()
-        self.root.destroy()
+
+class JukeboxAPI:
+    def load_dataset(self, dataset_id: str) -> dict[str, str | float]:
+        return {
+            "id": dataset_id,
+            "unit": "ppm" if dataset_id == "co2" else "°C",
+            "min": 410.0,
+            "max": 435.0,
+        }
+
+    def calibrate_pad(self) -> str:
+        pad_state.update(x=0.5, y=0.5, touching=False, fingers=0)
+        return "Pad calibrated"
+
+
+def resolve_ui_url() -> str:
+    if "--dev" in sys.argv:
+        return "http://localhost:5173"
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    packaged_ui = os.path.join(base_dir, "dist", "index.html")
+    if os.path.exists(packaged_ui):
+        return packaged_ui
+    return os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "TESTS", "dist", "index.html")
+    )
+
+
+def stream_trackpad_to_ui(
+    window: webview.Window, stop: threading.Event
+) -> None:
+    while not stop.is_set():
+        payload = json.dumps(pad_state)
+        try:
+            window.evaluate_js(
+                "window.dispatchEvent(new CustomEvent('pad-update', "
+                f"{{ detail: {payload} }}));"
+            )
+        except Exception:
+            if stop.is_set():
+                return
+        time.sleep(1 / 60)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Show raw coordinates from a Linux touchpad."
+        description="Show raw coordinates from a Linux touchpad in a React UI."
     )
     parser.add_argument(
         "--device",
@@ -204,11 +220,24 @@ def main() -> int:
                 reader_error.append(exc)
                 stop.set()
 
-        root = tk.Tk()
-        root.title("Trackpad monitor")
-        TouchpadView(root, device, points, stop)
         threading.Thread(target=reader, daemon=True).start()
-        root.mainloop()
+        threading.Thread(
+            target=_update_pad_state, args=(points, stop), daemon=True
+        ).start()
+
+        window = webview.create_window(
+            title="Earth Information Jukebox",
+            url=resolve_ui_url(),
+            js_api=JukeboxAPI(),
+            width=1200,
+            height=800,
+        )
+        webview.start(
+            stream_trackpad_to_ui,
+            args=(window, stop),
+            http_server=True,
+        )
+        stop.set()
         if reader_error:
             raise reader_error[0]
         return 0
