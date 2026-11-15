@@ -2,10 +2,12 @@ export type Dataset = {
   id: string;
   title: string;
   description: string;
+  category: string;
   image: string;
   unit: string;
   min: number;
   max: number;
+  legend: { color: string; meaning: string }[];
 };
 
 export type JukeboxApi = {
@@ -19,6 +21,7 @@ export type JukeboxApi = {
     touching: boolean,
     fingers: number,
   ) => Promise<void>;
+  set_audio_enabled: (enabled: boolean) => Promise<void>;
   get_music_snapshot: () => Promise<MusicSnapshot>;
   get_audio_status: () => Promise<AudioStatus>;
 };

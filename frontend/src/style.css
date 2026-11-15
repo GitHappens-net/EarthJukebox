@@ -7,6 +7,180 @@
 
 body {
   min-width: 320px;
-  background: #10191c;
+  background: #a8bc9c;
+  color: #263525;
   font-family: var(--font-sans);
+}
+
+html,
+body {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+.skip-link {
+  position: fixed;
+  top: -3rem;
+  left: 1rem;
+  z-index: 50;
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.9rem;
+  color: #fff;
+  background: #4b613f;
+  transition: top 160ms ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #e2a95c;
+  outline-offset: 3px;
+}
+
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: #a8bc9c;
+}
+
+.ambient-orb {
+  display: none;
+}
+
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 1rem;
+  background: rgba(235, 241, 231, 0.74);
+  box-shadow: 0 12px 30px rgba(48, 69, 45, 0.13);
+}
+
+.glass-panel .text-white {
+  color: #263525;
+}
+
+.glass-panel .text-slate-300,
+.glass-panel .text-slate-400 {
+  color: #52644c;
+}
+
+.glass-button,
+.status-pill,
+.info-chip {
+  border: 1px solid rgba(75, 97, 63, 0.22);
+  border-radius: 0.55rem;
+  background: #4b613f;
+  color: white;
+}
+
+.glass-button {
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.glass-button:hover {
+  transform: translateY(-2px);
+  background: #3b5033;
+}
+
+.status-pill,
+.info-chip {
+  display: inline-flex;
+  padding: 0.4rem 0.7rem;
+}
+
+.info-chip {
+  background: rgba(75, 97, 63, 0.1);
+  color: #3f5239;
+}
+
+.dataset-card {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.45);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.dataset-card:hover {
+  transform: translateX(4px);
+  border-color: #4b613f;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dataset-card .text-white {
+  color: #263525;
+}
+
+.dataset-card .text-slate-400 {
+  color: #52644c;
+}
+
+.dataset-card-selected {
+  border-color: #4b613f;
+  background: rgba(75, 97, 63, 0.18);
+  box-shadow: inset 3px 0 #4b613f;
+}
+
+.trackpad-shell {
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  background: #d6d6d6;
+  box-shadow: 0 12px 30px rgba(48, 69, 45, 0.18);
+  transition: box-shadow 300ms ease, transform 300ms ease;
+}
+
+.trackpad-shell:hover {
+  transform: translateY(-2px);
+}
+
+.trackpad-active {
+  box-shadow: 0 0 0 3px rgba(75, 97, 63, 0.35), 0 16px 35px rgba(48, 69, 45, 0.2);
+}
+
+.cursor-dot {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.45);
+  transition: left 100ms linear, top 100ms linear, transform 180ms ease;
+}
+
+.trackpad-active .cursor-dot {
+  transform: translate(-50%, -50%) scale(1.3);
+}
+
+.eyebrow {
+  color: #52644c;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.info-card {
+  border: 1px solid rgba(75, 97, 63, 0.2);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: #4b613f;
+  background: rgba(255, 255, 255, 0.45);
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.info-card:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.7);
 }

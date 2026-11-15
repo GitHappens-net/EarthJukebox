@@ -180,7 +180,8 @@ class JukeboxAPI:
 
     def __init__(self) -> None:
         self._selected_dataset = 0
-        image_dir = REPOSITORY_ROOT / "data" / "images"
+        self._audio_enabled = True
+        image_dir = Path(__file__).resolve().parent / "earth_jukebox" / "datasets" / "images"
         manager = DatasetManager(
             datasets_dir=image_dir,
             include_tactile_reference=False,
@@ -191,7 +192,7 @@ class JukeboxAPI:
         )
         self._service.start()
 
-    def get_datasets(self) -> list[dict[str, str | float]]:
+    def get_datasets(self) -> list[dict[str, object]]:
         return [
             {
                 "id": str(item["index"]),
@@ -204,13 +205,15 @@ class JukeboxAPI:
                     ).decode("ascii")
                 ),
                 "unit": str(item["unit"]),
+                "category": str(item["category"]),
+                "legend": item["legend"],
                 "min": 0.0,
                 "max": 0.0,
             }
             for item in self._service.list_datasets()
         ]
 
-    def load_dataset(self, dataset_id: str) -> dict[str, str | float]:
+    def load_dataset(self, dataset_id: str) -> dict[str, object]:
         self.select_dataset(dataset_id)
         for dataset in self.get_datasets():
             if dataset["id"] == dataset_id:
@@ -222,6 +225,7 @@ class JukeboxAPI:
         return "Pad calibrated"
 
     def update_pad(self, x: float, y: float, touching: bool, fingers: int) -> None:
+        touching = touching and self._audio_enabled
         pad_state.update(
             x=max(0.0, min(1.0, x)),
             y=max(0.0, min(1.0, y)),
@@ -237,6 +241,16 @@ class JukeboxAPI:
                 "dataset": self._selected_dataset,
             }
         )
+
+    def set_audio_enabled(self, enabled: bool) -> None:
+        self._audio_enabled = enabled
+        if not enabled:
+            self.update_pad(
+                float(pad_state["x"]),
+                float(pad_state["y"]),
+                False,
+                0,
+            )
 
     def get_audio_status(self) -> dict[str, object]:
         status = self._service.current_status()

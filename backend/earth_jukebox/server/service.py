@@ -100,6 +100,10 @@ class SonificationService:
                         "category": entry.category,
                         "unit": entry.unit,
                         "summary": entry.summary,
+                        "legend": [
+                            {"color": color, "meaning": meaning}
+                            for color, meaning in entry.color_meanings
+                        ],
                         "width": w,
                         "height": h,
                         "image_url": f"/api/datasets/{idx}/image",
