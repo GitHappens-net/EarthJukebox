@@ -1,14 +1,6 @@
-"""Cross-platform MIDI and software synthesizer audio backends.
-
-Designed for 100% Linux, macOS, and Windows compatibility:
-``ctypes.windll`` and ``ctypes.wintypes`` are NEVER imported at module import
-time and are accessed lazily inside :class:`WinmmMidiBackend` only on Windows.
-"""
-
 from __future__ import annotations
 
 import ctypes
-import math
 import platform
 import shutil
 import subprocess
@@ -17,14 +9,12 @@ from pathlib import Path
 from typing import Optional
 
 try:
-    import numpy as np
+    import numpy as np # type: ignore
 except ImportError:  # pragma: no cover - numpy is a core dependency
     np = None  # type: ignore[assignment]
 
-
+# Abstract MIDI / polyphonic synthesizer backend
 class AudioBackend(ABC):
-    """Abstract MIDI / polyphonic synthesizer backend."""
-
     @property
     @abstractmethod
     def backend_name(self) -> str:
@@ -52,10 +42,8 @@ class AudioBackend(ABC):
     def close(self) -> None:
         """Silence active voices and release audio handles."""
 
-
+# Silent backend used in headless environments or automated tests
 class NullAudioBackend(AudioBackend):
-    """Silent backend used in headless environments or automated tests."""
-
     @property
     def backend_name(self) -> str:
         return "Null Audio (Headless)"
@@ -72,10 +60,8 @@ class NullAudioBackend(AudioBackend):
     def close(self) -> None:
         pass
 
-
+# Cross-platform MIDI playback via ``pygame.midi`` when an output port exists
 class PygameMidiBackend(AudioBackend):
-    """Cross-platform MIDI playback via ``pygame.midi`` when an output port exists."""
-
     def __init__(self) -> None:
         self._out = None
         self._pygame_midi = None
@@ -153,10 +139,8 @@ class PygameMidiBackend(AudioBackend):
                     except Exception:
                         pass
 
-
+# Native Windows General MIDI output via ``winmm.dll`` (zero pip dependencies)
 class WinmmMidiBackend(AudioBackend):
-    """Native Windows General MIDI output via ``winmm.dll`` (zero pip dependencies)."""
-
     def __init__(self) -> None:
         if platform.system() != "Windows":
             raise RuntimeError("WinmmMidiBackend is only supported on Windows")
@@ -242,10 +226,8 @@ class WinmmMidiBackend(AudioBackend):
                 self._opened = False
                 self._handle = ctypes.c_void_p()
 
-
+# Optional Linux MIDI synthesizer via ``fluidsynth`` CLI + system GM SoundFont
 class LinuxFluidSynthBackend(AudioBackend):
-    """Optional Linux MIDI synthesizer via ``fluidsynth`` CLI + system GM SoundFont."""
-
     DEFAULT_SOUNDFONTS: tuple[str, ...] = (
         "/usr/share/sounds/sf2/FluidR3_GM.sf2",
         "/usr/share/soundfonts/FluidR3_GM.sf2",
@@ -336,14 +318,8 @@ class LinuxFluidSynthBackend(AudioBackend):
             finally:
                 self._proc = None
 
-
-class PygameMixerSynthBackend(AudioBackend):
-    """Cross-platform software wavetable fallback using ``pygame.mixer`` + ``numpy``.
-
-    Useful on Linux desktops without a hardware MIDI daemon (e.g. TiMidity/FluidSynth)
-    when ``pygame`` and an audio output device are available.
-    """
-
+# Cross-platform software wavetable fallback using pygame.mixer + numpy
+class PygameMixerSynthBackend(AudioBackend):s
     SAMPLE_RATE = 22050
 
     def __init__(self) -> None:
@@ -376,7 +352,6 @@ class PygameMixerSynthBackend(AudioBackend):
         self._active_voices.clear()
 
     def _build_note_sound(self, channel: int, midi_note: int):
-        """Build (and cache) one note using the shared NumPy instruments in ``synth``."""
         assert np is not None
         assert self._sndarray is not None
 
@@ -430,10 +405,8 @@ class PygameMixerSynthBackend(AudioBackend):
                 self._active_voices.clear()
                 self._sound_cache.clear()
 
-
+# Decorate an audio backend while publishing MIDI events to subscribers
 class BroadcastAudioBackend(AudioBackend):
-    """Decorate an audio backend while publishing MIDI events to subscribers."""
-
     def __init__(self, inner: AudioBackend, max_queue_size: int = 128) -> None:
         import queue
         import threading
@@ -477,7 +450,6 @@ class BroadcastAudioBackend(AudioBackend):
                     pass
 
     def publish(self, event: dict[str, object]) -> None:
-        """Publish a non-MIDI state event to connected subscribers."""
         self._publish(event)
 
     def start(self, channel_programs: dict[int, int]) -> None:
@@ -517,9 +489,8 @@ class BroadcastAudioBackend(AudioBackend):
         finally:
             self._publish({"type": "engine_stop"})
 
-
+# Select the highest-fidelity available MIDI/synth backend on the current OS
 def create_best_audio_backend(enable_audio: bool = True) -> AudioBackend:
-    """Select the highest-fidelity available MIDI/synth backend on the current OS."""
     if not enable_audio:
         return NullAudioBackend()
 

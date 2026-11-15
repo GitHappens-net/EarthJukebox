@@ -1,16 +1,10 @@
-"""NASA Earth visualization dataset discovery, normalization, and caching."""
-
 from __future__ import annotations
-
 from pathlib import Path
 from typing import Optional
-
 import cv2
 import numpy as np
-
 from backend.earth_jukebox.datasets.catalog import NASA_EIC_CATALOG
 from backend.earth_jukebox.models import DatasetEntry
-
 
 def _default_repo_root() -> Path:
     package_root = Path(__file__).resolve().parents[3]
@@ -20,7 +14,6 @@ def _default_repo_root() -> Path:
     if (cwd / "data" / "images").is_dir():
         return cwd
     return package_root
-
 
 class DatasetManager:
     """Manages loading, normalizing, caching, and cycling NASA imagery datasets."""

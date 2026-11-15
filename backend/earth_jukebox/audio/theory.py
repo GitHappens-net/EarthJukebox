@@ -36,23 +36,18 @@ except ImportError:  # pragma: no cover - standalone fallback prior to scaffold 
         touching: bool = True
 
 
-# =============================================================================
-# MASTER CLOCK & C NATURAL MINOR SCALE CONSTANTS
-# =============================================================================
 BPM: float = 75.0
 BEAT_DURATION_SEC: float = 60.0 / BPM                 # 0.8s per quarter beat
 SIXTEENTH_DURATION_SEC: float = BEAT_DURATION_SEC / 4.0  # 0.2s per 16th step
 FIXED_VELOCITY: int = 88
 FIXED_VOLUME: float = 0.65
 
-# Strict C Natural Minor pitch classes: C, D, Eb, F, G, Ab, Bb
 C_MINOR_PITCH_CLASSES: frozenset[int] = frozenset({0, 2, 3, 5, 7, 8, 10})
 C_MINOR_SORTED_PCS: tuple[int, ...] = (0, 2, 3, 5, 7, 8, 10)
 NOTE_NAMES: tuple[str, ...] = (
     "C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"
 )
 
-# MIDI Channel Assignment (0..15, Channel 9 reserved for GM Percussion)
 PAD_CHANNEL = 0            # Drawbar Organ (GM 16)
 BASS_CHANNEL = 6           # Synth Bass 1 (GM 38)
 ARP_CHANNEL = 8            # Lead 1 Square (GM 80) - Veridis Quo baroque lead
@@ -61,7 +56,6 @@ WARM_PAD_CHANNEL = 10      # Warm Pad (GM 89)
 PLUCK_CHANNEL = 11         # Marimba (GM 12) - Spottiness syncopated counter-accents
 CHURCH_ORGAN_CHANNEL = 12  # Church Organ (GM 19) - Wide-cursor harmonic swell
 
-# General MIDI Percussion Note Numbers (Channel 9)
 DRUM_KICK = 36
 DRUM_RIM = 37
 DRUM_CLAP = 39
@@ -72,7 +66,6 @@ DRUM_TAMBOURINE = 54
 DRUM_CONGA_HI = 63
 DRUM_SHAKER = 70
 
-# Color -> strictly quantized C-Minor MIDI pitch palette (cool low -> warm high)
 COLOR_PITCH_MAP: dict[str, tuple[int, ...]] = {
     "Black": (36, 43, 48, 51, 55),          # C2, G2, C3, Eb3, G3
     "Blue": (48, 51, 55, 58, 60),           # C3, Eb3, G3, Bb3, C4
@@ -82,7 +75,6 @@ COLOR_PITCH_MAP: dict[str, tuple[int, ...]] = {
     "Red": (74, 75, 79, 80, 82, 84),        # D5, Eb5, G5, Ab5, Bb5, C6
 }
 
-# Color -> octave register anchor relative to C4 (60)
 COLOR_OCTAVE_OFFSET: dict[str, int] = {
     "Black": -12,
     "Blue": -12,
@@ -92,7 +84,6 @@ COLOR_OCTAVE_OFFSET: dict[str, int] = {
     "Red": 12,
 }
 
-# Color -> (MIDI Channel, General MIDI Program)
 COLOR_CHANNEL_PROGRAM: dict[str, tuple[int, int]] = {
     "Black": (1, 89),   # Warm Pad
     "Blue": (2, 88),    # New Age Pad
@@ -102,8 +93,6 @@ COLOR_CHANNEL_PROGRAM: dict[str, tuple[int, int]] = {
     "Red": (7, 81),     # Lead 2 (Sawtooth)
 }
 
-# Warm colors add a controlled tension tone to the active chord while remaining
-# inside the shared C-natural-minor palette.
 COLOR_WARNING_INTERVALS: dict[str, int] = {
     "Orange": 10,  # minor 7th
     "Red": 14,     # natural 9th
@@ -120,8 +109,6 @@ class ChordVoicing:
     arp_tones: tuple[int, ...]
 
 
-# 8-Bar Baroque Circle-of-Fifths C-Minor Progression (Veridis Quo inspired)
-# i -> iv -> bVII -> bIII -> bVI -> iv9 -> iiø7 -> v7 (100% C Natural Minor)
 VERIDIS_QUO_PROGRESSION: tuple[ChordVoicing, ...] = (
     ChordVoicing("Cm9", 36, (48, 51, 55, 58, 62), (60, 63, 67, 70, 74, 75)),
     ChordVoicing("Fm7", 41, (48, 53, 56, 60, 63), (65, 68, 72, 75, 77, 72)),
@@ -133,12 +120,10 @@ VERIDIS_QUO_PROGRESSION: tuple[ChordVoicing, ...] = (
     ChordVoicing("Gm7", 43, (50, 53, 55, 58, 62), (67, 70, 74, 77, 79, 74)),
 )
 
-# Compatibility tuple view: (chord_name, bass_note, pad_tones)
 HARMONIC_PROGRESSION: tuple[tuple[str, int, tuple[int, ...]], ...] = tuple(
     (chord.name, chord.bass_note, chord.pad_tones) for chord in VERIDIS_QUO_PROGRESSION
 )
 
-# Shape-driven melodic contour patterns (indices into 6-note sorted pitch pool)
 SHAPE_CONTOUR_PATTERNS: dict[str, tuple[int, ...]] = {
     "uniform": (0, 0, 2, 0, 2, 2, 0, 2),
     "linear": (0, 1, 2, 3, 4, 5, 4, 3),
@@ -193,10 +178,6 @@ def midi_to_freq(midi_note: int) -> float:
     return 440.0 * (2.0 ** ((int(midi_note) - 69) / 12.0))
 
 
-# =============================================================================
-# DYNAMICS  (brightness -> loudness).  Set DYNAMICS_ENABLED=False to restore the
-# old flat-velocity behaviour.
-# =============================================================================
 DYNAMICS_ENABLED: bool = True
 DYNAMIC_FLOOR: int = 52     # darkest region is still clearly audible
 DYNAMIC_CEIL: int = 112     # brightest region
@@ -217,10 +198,6 @@ def intensity_to_volume(intensity: float) -> float:
     return round(0.40 + 0.55 * _clamp01(intensity), 4)
 
 
-# =============================================================================
-# ONE ACTIVITY LADDER shared by every layer (melody, bass, drums, arpeggio).
-# Each step up the ladder ADDS something you can hear, in a predictable order.
-# =============================================================================
 TIER_EDGES: tuple[float, ...] = (0.15, 0.35, 0.65)
 TIER_NAMES: tuple[str, ...] = ("Calm", "Gentle", "Busy", "Frantic")
 TIER_RHYTHMS: tuple[tuple[str, float], ...] = (
@@ -316,9 +293,6 @@ def plan_chord_voicing(
     return chord.name, snap_to_c_minor(chord.bass_note), tuple(dict.fromkeys(tones))
 
 
-# =============================================================================
-# PER-COLOR / PER-CHANNEL DESIGN TABLES
-# =============================================================================
 COLOR_WARMTH_RANK: dict[str, int] = {
     "Black": 0, "Blue": 1, "Green": 2, "White": 3, "Orange": 4, "Red": 5,
 }
@@ -370,9 +344,6 @@ for _color, (_ch, _prog) in COLOR_CHANNEL_PROGRAM.items():
     CHANNEL_VOLUME[_ch] = 104
 
 
-# =============================================================================
-# NOTE / STEP DATA CONTRACTS
-# =============================================================================
 PAD_ROLES: tuple[str, ...] = ("pad", "warm_pad", "church")
 
 
@@ -410,9 +381,6 @@ def snap_all(notes) -> list[int]:
     return [snap_to_c_minor(n) for n in notes]
 
 
-# =============================================================================
-# PLANNERS  (pure functions of the analysis; all velocities derive from brightness)
-# =============================================================================
 def plan_bass_step(
     bar_index: int,
     density: float,
@@ -712,9 +680,6 @@ def compute_expression_ccs(analysis: AnalysisResult, step_16: int) -> dict[str, 
     }
 
 
-# =============================================================================
-# HARMONY HELPERS
-# =============================================================================
 def select_harmony_below(midi_note: int, bar_index: int = 0) -> Optional[int]:
     """Pick a consonant chord tone 3-9 semitones *below* the melody (never a tritone)."""
     chord = VERIDIS_QUO_PROGRESSION[bar_index % len(VERIDIS_QUO_PROGRESSION)]
@@ -753,9 +718,6 @@ def plan_transition_cue(
     ]
 
 
-# =============================================================================
-# SMOOTHING: stops the music flickering when the cursor jitters across a threshold
-# =============================================================================
 class AnalysisSmoother:
     """Exponentially smooths continuous features, adds tier hysteresis, debounces labels."""
 
@@ -829,9 +791,6 @@ class AnalysisSmoother:
         )
 
 
-# =============================================================================
-# STEP SEQUENCER: the single source of truth for "what plays on this 16th step"
-# =============================================================================
 class StepSequencer:
     """Pure (I/O-free) scheduler shared by the live engine and the offline WAV synth."""
 
@@ -949,10 +908,6 @@ class StepSequencer:
         return StepPlan(step_16, bar_index, chord_name, tier, TIER_NAMES[tier], rhythm_name,
                         self._note_label, True, retrigger, False, tuple(events))
 
-
-# =============================================================================
-# EXPLANATIONS: "why does it sound like this?"  (UI text, screen readers, judges)
-# =============================================================================
 SHAPE_SOUND: dict[str, str] = {
     "uniform": "simple repeating arpeggio, few note changes",
     "linear": "straight rising/falling scale runs",
@@ -960,7 +915,6 @@ SHAPE_SOUND: dict[str, str] = {
     "organic": "wandering, irregular melodic leaps",
 }
 _LOUDNESS_WORDS = ("very soft", "soft", "medium", "loud", "very loud")
-
 
 def active_layers(analysis: AnalysisResult, drums_on: bool = True) -> list[str]:
     """Names of the musical layers currently sounding for this analysis."""
@@ -978,7 +932,6 @@ def active_layers(analysis: AnalysisResult, drums_on: bool = True) -> list[str]:
     if getattr(analysis, "spottiness", 0.0) >= 0.25:
         layers.append("Marimba sparkles")
     return layers
-
 
 def describe_mapping(analysis: AnalysisResult, drums_on: bool = True) -> dict:
     """Structured, human-readable explanation of how each image feature shaped the sound."""
@@ -1030,7 +983,6 @@ def describe_mapping(analysis: AnalysisResult, drums_on: bool = True) -> dict:
         "layers": active_layers(analysis, drums_on),
         "rows": rows,
     }
-
 
 def format_music_explanation(analysis: AnalysisResult, drums_on: bool = True) -> str:
     """One spoken sentence describing the current sound."""

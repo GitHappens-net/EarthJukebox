@@ -1,26 +1,11 @@
-"""Pure-NumPy stereo synthesizer for Earth Jukebox.
-
-Two jobs, one set of voices:
-
-1. :func:`render_sonification_wav` / :func:`render_sonification` render a loop of the
-   current analysis to a stereo WAV.  They use :class:`StepSequencer`, the *same*
-   scheduler as the live engine, so the WAV is the same music as the live sound.
-2. :func:`render_channel_note_pcm` renders one note for the real-time
-   ``PygameMixerSynthBackend`` so the fallback live synth shares these instruments.
-
-Everything is vectorised NumPy (no SciPy).  Timbres use band-limited wavetables, so
-there is no aliasing, and brightness (image intensity) changes the spectral tilt.
-"""
-
 from __future__ import annotations
-
 import io
 import math
 import wave
 from functools import lru_cache
 from typing import Optional
 
-import numpy as np
+import numpy as np # type: ignore
 
 from backend.earth_jukebox.audio.theory import (
     ARP_CHANNEL,
@@ -54,14 +39,9 @@ SAMPLE_RATE = 44100
 _TABLE_N = 2048
 _TWO_PI = 2.0 * math.pi
 
-
 def _clamp01(x: float) -> float:
     return max(0.0, min(1.0, float(x)))
 
-
-# =============================================================================
-# OSCILLATORS (band-limited wavetables)
-# =============================================================================
 @lru_cache(maxsize=512)
 def _wavetable(kind: str, harmonics: int, tilt_q: int) -> np.ndarray:
     k = np.arange(1, harmonics + 1, dtype=np.float64)
@@ -76,26 +56,17 @@ def _wavetable(kind: str, harmonics: int, tilt_q: int) -> np.ndarray:
         weights = (0.64, 0.24, 0.12, 0.06, 0.03)
         amps = np.zeros(harmonics)
         amps[: min(len(weights), harmonics)] = weights[:harmonics]
-    else:  # sine
+    else:
         amps = np.zeros(harmonics)
         amps[0] = 1.0
     if kind in ("saw", "square", "triangle"):
-        amps = amps * k ** (-tilt_q / 4.0)  # spectral tilt = filter brightness
+        amps = amps * k ** (-tilt_q / 4.0)
     x = np.arange(_TABLE_N, dtype=np.float64) / _TABLE_N
     table = (amps[:, None] * np.sin(_TWO_PI * k[:, None] * x[None, :])).sum(axis=0)
     table /= max(1e-9, float(np.max(np.abs(table))))
     return np.append(table, table[0]).astype(np.float32)
 
-
-def _osc(
-    kind: str,
-    freq: float,
-    n: int,
-    sr: int,
-    brightness: float,
-    vib: Optional[np.ndarray] = None,
-    max_h: int = 24,
-) -> np.ndarray:
+def _osc(kind: str, freq: float, n: int, sr: int, brightness: float, vib: Optional[np.ndarray] = None, max_h: int = 24) -> np.ndarray:
     harmonics = max(1, min(max_h, int(0.45 * sr / max(freq, 1.0))))
     table = _wavetable(kind, harmonics, int(round((1.0 - _clamp01(brightness)) * 8)))
     inc = freq / sr
@@ -108,7 +79,6 @@ def _osc(
     frac = (idx - i0).astype(np.float32)
     return table[i0] * (1.0 - frac) + table[i0 + 1] * frac
 
-
 def _env(n: int, sr: int, gate: int, attack: float, decay: float, sustain: float, release: float) -> np.ndarray:
     t = np.arange(n, dtype=np.float64) / sr
     env = np.minimum(1.0, t / max(attack, 1e-4)) * (
@@ -119,7 +89,6 @@ def _env(n: int, sr: int, gate: int, attack: float, decay: float, sustain: float
         r = np.arange(n - gate, dtype=np.float64) / max(1, n - gate)
         env[gate:] = level * (1.0 - r) ** 2
     return env
-
 
 def _partials(freq: float, n: int, sr: int, parts, brightness: float) -> np.ndarray:
     t = np.arange(n, dtype=np.float64) / sr
@@ -132,15 +101,6 @@ def _partials(freq: float, n: int, sr: int, parts, brightness: float) -> np.ndar
         out += amp * tilt * np.sin(_TWO_PI * f * t) * np.exp(-t * decay)
     return out
 
-
-# =============================================================================
-# INSTRUMENTS
-# =============================================================================
-# kind "layers": sustained oscillator stack (detuned L/R for width)
-#   layer = (waveform, freq_ratio, level, detune_cents, darkness)
-# kind "synth":  like layers but with a bright->dark filter-envelope pluck
-#   layer = (waveform, freq_ratio, level, detune_cents, filtered?)
-# kind "partials": struck/plucked tones built from decaying partials
 _VOICES: dict[str, dict] = {
     "organ_pad": dict(kind="layers", gain=0.13, env=(0.09, 0.5, 0.80, 0.35),
                       layers=[("organ", 1, 0.55, 0, 0.0), ("saw", 1, 0.45, 5, 0.10)]),
@@ -169,23 +129,11 @@ _VOICES: dict[str, dict] = {
                   parts=[(1.0, 1.0, 9.0), (2.0, 0.30, 14.0), (6.27, 0.20, 25.0)]),
 }
 
-
 def _balance(left: np.ndarray, right: np.ndarray, pan: float) -> tuple[np.ndarray, np.ndarray]:
     pan = max(-1.0, min(1.0, float(pan)))
     return left * min(1.0, 1.0 - pan), right * min(1.0, 1.0 + pan)
 
-
-def render_note_stereo(
-    timbre: str,
-    freq: float,
-    gate_sec: float,
-    velocity: int,
-    brightness: float = 0.6,
-    sr: int = SAMPLE_RATE,
-    vibrato: float = 0.0,
-    pan: float = 0.0,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Render one note (gate + release tail) as ``(left, right)`` float32 arrays."""
+def render_note_stereo(timbre: str, freq: float, gate_sec: float, velocity: int, brightness: float = 0.6, sr: int = SAMPLE_RATE, vibrato: float = 0.0, pan: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
     spec = _VOICES.get(timbre) or _VOICES["organ_pad"]
     kind = spec["kind"]
     release = spec["env"][3] if "env" in spec else spec.get("release", 0.1)
@@ -211,13 +159,13 @@ def render_note_stereo(
 
         def layer_signal(wave_kind: str, f: float, flag) -> np.ndarray:
             if kind == "synth":
-                if flag:  # bright -> dark filter-envelope pluck
+                if flag:
                     bright = _osc(wave_kind, f, n, sr, min(1.0, b + 0.25), vib)
                     dark = _osc(wave_kind, f, n, sr, max(0.0, b - 0.35), vib)
                     e = np.exp(-t / spec["fdec"])
                     return e * bright + (1.0 - e) * dark
                 return _osc(wave_kind, f, n, sr, b, vib)
-            return _osc(wave_kind, f, n, sr, max(0.0, b - flag), vib)  # flag = extra darkness
+            return _osc(wave_kind, f, n, sr, max(0.0, b - flag), vib)
 
         for wave_kind, ratio, level, cents, flag in spec["layers"]:
             f = freq * ratio
@@ -225,7 +173,7 @@ def render_note_stereo(
                 sig = level * layer_signal(wave_kind, f, flag)
                 left += sig
                 right += sig
-            else:  # detune left/right in opposite directions for stereo width
+            else:
                 left += level * layer_signal(wave_kind, f * 2.0 ** (cents / 1200.0), flag)
                 right += level * layer_signal(wave_kind, f * 2.0 ** (-cents / 1200.0), flag)
         att, dec, sus, rel = spec["env"]
@@ -240,15 +188,10 @@ def render_note_stereo(
     left, right = _balance(left * amp, right * amp, pan)
     return left.astype(np.float32), right.astype(np.float32)
 
-
-# =============================================================================
-# DRUMS
-# =============================================================================
 def _hp(x: np.ndarray, times: int = 1) -> np.ndarray:
     for _ in range(times):
         x = np.diff(x, prepend=0.0)
     return x
-
 
 def render_drum_stereo(note: int, velocity: int, sr: int = SAMPLE_RATE, seed: int = 0):
     amp = (max(1, min(127, int(velocity))) / 127.0) ** 1.2
@@ -312,17 +255,12 @@ def render_drum_stereo(note: int, velocity: int, sr: int = SAMPLE_RATE, seed: in
     left, right = _balance(sig, sig, pan)
     return left.astype(np.float32), right.astype(np.float32)
 
-
-# =============================================================================
-# EFFECTS
-# =============================================================================
 def _comb(x: np.ndarray, d: int, g: float) -> np.ndarray:
     y = x.copy()
     for s in range(d, len(x), d):
         e = min(len(x), s + d)
         y[s:e] += g * y[s - d : e - d]
     return y
-
 
 def _allpass(x: np.ndarray, d: int, g: float) -> np.ndarray:
     y = np.zeros_like(x)
@@ -334,13 +272,12 @@ def _allpass(x: np.ndarray, d: int, g: float) -> np.ndarray:
             y[s:e] = -g * x[s:e]
     return y
 
-
+# Small stereo Schroeder room (4 combs + 2 all-passes per side)
 def _reverb(left: np.ndarray, right: np.ndarray, sr: int) -> tuple[np.ndarray, np.ndarray]:
-    """Small stereo Schroeder room (4 combs + 2 all-passes per side)."""
     mono = 0.5 * (left + right)
     kernel = np.exp(-np.arange(48) / 7.0)
     kernel /= kernel.sum()
-    mono = np.convolve(mono, kernel)[: len(mono)]            # damp highs going into the room
+    mono = np.convolve(mono, kernel)[: len(mono)]
     pre = int(0.018 * sr)
     mono = np.concatenate([np.zeros(pre, dtype=mono.dtype), mono])[: len(left)]
     outs = []
@@ -354,26 +291,14 @@ def _reverb(left: np.ndarray, right: np.ndarray, sr: int) -> tuple[np.ndarray, n
         outs.append(acc)
     return outs[0], outs[1]
 
-
-# =============================================================================
-# HELPERS SHARED WITH THE LIVE BACKEND
-# =============================================================================
 def to_int16_stereo(left: np.ndarray, right: np.ndarray, scale: float = 30000.0) -> np.ndarray:
     pcm = np.empty((len(left), 2), dtype="<i2")
     pcm[:, 0] = np.clip(left * scale, -32767, 32767)
     pcm[:, 1] = np.clip(right * scale, -32767, 32767)
     return np.ascontiguousarray(pcm)
 
-
-def render_channel_note_pcm(
-    channel: int,
-    midi_note: int,
-    sr: int = 22050,
-    gate_sec: float = 1.2,
-    velocity: int = 100,
-    brightness: float = 0.6,
-) -> np.ndarray:
-    """One note for the real-time mixer backend (``(n, 2)`` int16)."""
+# One note for the real-time mixer backend (``(n, 2)`` int16)
+def render_channel_note_pcm(channel: int, midi_note: int, sr: int = 22050, gate_sec: float = 1.2, velocity: int = 100, brightness: float = 0.6) -> np.ndarray:
     if channel == DRUM_CHANNEL:
         left, right = render_drum_stereo(midi_note, velocity, sr)
     else:
@@ -384,15 +309,10 @@ def render_channel_note_pcm(
         )
     return to_int16_stereo(left, right, 28000.0)
 
-
-# =============================================================================
-# OFFLINE RENDERER
-# =============================================================================
 _BUS_OF_ROLE = {"pad": "pad", "warm_pad": "pad", "church": "pad", "bass": "bass", "drum": "drums"}
 _BUS_GAIN = {"pad": 1.0, "bass": 1.0, "lead": 1.0, "drums": 1.0}
 _REVERB_SEND = {"pad": 0.50, "bass": 0.0, "lead": 0.55, "drums": 0.12}
 _ROOM = {"tight": 0.30, "mid": 0.55, "wide": 0.90}
-
 
 def _silent_wav(sr: int) -> bytes:
     buf = io.BytesIO()
@@ -402,7 +322,6 @@ def _silent_wav(sr: int) -> bytes:
         wf.setframerate(sr)
         wf.writeframes(np.zeros(int(0.25 * sr) * 2, dtype=np.int16).tobytes())
     return buf.getvalue()
-
 
 def render_sonification(
     analysis: AnalysisResult,
@@ -478,7 +397,6 @@ def render_sonification(
         bus[0][start:end] += left[: end - start]
         bus[1][start:end] += right[: end - start]
 
-    # French-house "pump": duck the pad bed on every kick so the downbeat is felt.
     if sidechain and kick_starts:
         duck = np.ones(n, dtype=np.float32)
         seg_n = int(0.30 * sr)
@@ -504,7 +422,6 @@ def render_sonification(
         right[:fold] += right[main_n : main_n + fold]
         left, right = left[:main_n], right[:main_n]
 
-    # Master: gentle soft-clip (keeps relative loudness; no peak-normalising)
     left = np.tanh(left * 1.05).astype(np.float32) * 0.95
     right = np.tanh(right * 1.05).astype(np.float32) * 0.95
     ramp = min(len(left), int(0.003 * sr))
@@ -552,18 +469,9 @@ def render_sonification(
         ]
     return buf.getvalue(), report
 
-
-def render_sonification_wav(
-    analysis: AnalysisResult,
-    bar_index: int = 0,
-    bars: int = 1,
-    sample_rate: int = 44100,
-    ambient_drums: bool = True,
-    **kwargs,
-) -> bytes:
-    """Render ``bars`` of quantized C-minor Veridis Quo audio as stereo RIFF WAV bytes."""
+# Render ``bars`` of quantized C-minor Veridis Quo audio as stereo RIFF WAV bytes
+def render_sonification_wav(analysis: AnalysisResult, bar_index: int = 0, bars: int = 1, sample_rate: int = 44100, ambient_drums: bool = True, **kwargs) -> bytes:
     return render_sonification(analysis, bar_index, bars, sample_rate, ambient_drums, **kwargs)[0]
-
 
 __all__ = [
     "BPM",

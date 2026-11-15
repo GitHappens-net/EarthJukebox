@@ -1,9 +1,5 @@
-"""Screen-reader descriptive text helpers for Earth Jukebox (no spoken TTS)."""
-
 from __future__ import annotations
-
 from typing import Optional
-
 from backend.earth_jukebox.models import AnalysisResult, DatasetEntry
 
 AUDIO_LEGEND_TEXT = (
@@ -16,12 +12,8 @@ AUDIO_LEGEND_TEXT = (
     "P for auto-scan, D for drums, plus or minus to resize sensor box, Tab or 1-8 for dataset."
 )
 
-
-def format_zone_description(
-    analysis: AnalysisResult,
-    dataset: Optional[DatasetEntry] = None,
-) -> str:
-    """Return a rich, screen-reader-friendly description of the current sensor zone."""
+# Return a rich, screen-reader-friendly description of the current sensor zone
+def format_zone_description(analysis: AnalysisResult, dataset: Optional[DatasetEntry] = None) -> str:
     if not analysis.touching:
         return (
             "Cursor is outside the visualization canvas. "
@@ -42,9 +34,8 @@ def format_zone_description(
         f"Shape {analysis.shape}, spottiness {spot_pct} percent, swirliness {swirl_pct} percent."
     )
 
-
+# Return a screen-reader-friendly description of the active dataset
 def format_dataset_description(entry: DatasetEntry, index: int, total: int) -> str:
-    """Return a screen-reader-friendly description of the active dataset."""
     unit_text = f" Measured in {entry.unit}." if entry.unit else ""
     summary = entry.summary or f"Viewing {entry.name}."
     return f"Dataset {index} of {total}: {entry.name} ({entry.category}).{unit_text} {summary}"

@@ -1,11 +1,7 @@
-"""Beat-synchronized 75 BPM C-Minor sequencer engine inspired by Veridis Quo."""
-
 from __future__ import annotations
-
 import threading
 import time
 from typing import Optional
-
 from backend.earth_jukebox.audio.backends import AudioBackend, create_best_audio_backend
 from backend.earth_jukebox.audio.theory import (
     ARP_CHANNEL,
@@ -59,10 +55,8 @@ from backend.earth_jukebox.audio.theory import (
     snap_to_c_minor,
 )
 
-
+# Locked 75 BPM 16th-note Veridis Quo-inspired C-Minor polyphonic sequencer
 class CMinorAudioEngine:
-    """Locked 75 BPM 16th-note Veridis Quo-inspired C-Minor polyphonic sequencer."""
-
     BPM: float = BPM
     BEAT_DURATION_SEC: float = BEAT_DURATION_SEC
     SIXTEENTH_DURATION_SEC: float = SIXTEENTH_DURATION_SEC
@@ -102,12 +96,7 @@ class CMinorAudioEngine:
     plan_musical_step = staticmethod(plan_musical_step)
     plan_ambient_drums = staticmethod(plan_ambient_drums)
 
-    def __init__(
-        self,
-        backend: Optional[AudioBackend] = None,
-        enable_audio: bool = True,
-        ambient_drums: bool = True,
-    ) -> None:
+    def __init__(self, backend: Optional[AudioBackend] = None, enable_audio: bool = True, ambient_drums: bool = True) -> None:
         self.backend = backend or create_best_audio_backend(enable_audio=enable_audio)
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
@@ -144,18 +133,15 @@ class CMinorAudioEngine:
             return self._ambient_drums_enabled
 
     def toggle_drums(self) -> bool:
-        """Toggle the Channel 9 ambient drum & percussion groove."""
         with self._lock:
             self._ambient_drums_enabled = not self._ambient_drums_enabled
             return self._ambient_drums_enabled
 
     def current_beat_info(self) -> tuple[int, int]:
-        """Return ``(bar_index 0..7, beat_in_bar 0..3)`` for live UI beat indicator."""
         with self._lock:
             return self._beat_info
 
     def start(self) -> None:
-        """Initialize the audio backend, configure spatial CCs, and start clock thread."""
         if self._thread is not None and self._thread.is_alive():
             return
         self._stop_event.clear()
@@ -199,7 +185,6 @@ class CMinorAudioEngine:
         self._thread.start()
 
     def stop(self) -> None:
-        """Stop the sequencer thread, silence all voices, and close the backend."""
         self._stop_event.set()
         if self._thread is not None and self._thread.is_alive():
             self._thread.join(timeout=1.0)
@@ -207,12 +192,10 @@ class CMinorAudioEngine:
         self.backend.close()
 
     def update_analysis(self, result: AnalysisResult) -> None:
-        """Update the target CV metrics consumed on the 75 BPM beat grid."""
         with self._lock:
             self._latest_analysis = result
 
     def telemetry_text(self) -> str:
-        """Return a thread-safe snapshot of the current musical status."""
         with self._lock:
             return self._current_telemetry
 
@@ -251,12 +234,7 @@ class CMinorAudioEngine:
                 still_active.append((ch, note, off_step))
         self._active_timed_notes = still_active
 
-    def _apply_expressive_ccs(
-        self,
-        analysis: AnalysisResult,
-        step_16: int,
-        last_cc_state: Optional[tuple[int, int, int, int]],
-    ) -> tuple[int, int, int, int]:
+    def _apply_expressive_ccs(self, analysis: AnalysisResult, step_16: int, last_cc_state: Optional[tuple[int, int, int, int]]) -> tuple[int, int, int, int]:
         ccs = compute_expression_ccs(analysis, step_16)
         state = (ccs["reverb"], ccs["chorus"], ccs["modulation"], ccs["brightness"])
 
@@ -285,7 +263,6 @@ class CMinorAudioEngine:
         return "mid"
 
     def mix_state(self) -> dict:
-        """Thread-safe snapshot of what is playing right now (for the UI / status API)."""
         with self._lock:
             return dict(self._mix_state)
 
