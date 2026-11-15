@@ -33,7 +33,6 @@ export function useTrackpad() {
   }, []);
 
   const onFallbackPointer = (event: PointerEvent<HTMLElement>, touching: boolean) => {
-    if (isDesktopApp) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const nextPad = {
       x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),

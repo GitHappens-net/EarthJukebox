@@ -1,1 +1,1 @@
-{"root":["./vite.config.ts","./src/api.ts","./src/useTrackpad.ts","./src/App.tsx","./src/main.tsx","./src/pages/AboutPage.tsx","./src/pages/ExplorePage.tsx","./src/pages/InstructionsPage.tsx"],"version":"5.9.3"}
+{"root":["./vite.config.ts","./src/api.ts","./src/usetrackpad.ts","./src/app.tsx","./src/main.tsx"],"version":"5.9.3"}
