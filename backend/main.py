@@ -1,16 +1,33 @@
 from __future__ import annotations
-import webview
 import argparse
+import base64
 import json
 import os
 import queue
 import sys
 import threading
 import time
-from urllib.parse import quote
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
+from pathlib import Path
+
+if sys.platform.startswith("linux"):
+    try:
+        from PySide6 import QtWebEngineCore  # noqa: F401
+    except ImportError:
+        pass
+    else:
+        os.environ.setdefault("QT_API", "pyside6")
+
+import webview
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from backend.earth_jukebox.datasets import DatasetManager
+from backend.earth_jukebox.server.service import SonificationService
+
 try:
     from evdev import InputDevice, ecodes, list_devices
 except ImportError:
@@ -28,35 +45,6 @@ class TouchPoint:
 
 PadState = dict[str, float | bool | int]
 pad_state: PadState = {"x": 0.5, "y": 0.5, "touching": False, "fingers": 0}
-
-
-def _placeholder_image(background: str, accent: str, label: str) -> str:
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
-<rect width="800" height="450" fill="{background}"/>
-<path d="M0 330 Q180 180 360 310 T800 180 V450 H0Z" fill="{accent}" opacity=".72"/>
-<circle cx="620" cy="125" r="72" fill="{accent}" opacity=".42"/>
-<text x="40" y="80" fill="white" font-family="sans-serif" font-size="34">{label}</text>
-</svg>"""
-    return f"data:image/svg+xml,{quote(svg)}"
-
-
-def load_datasets() -> list[dict[str, str | float]]:
-    source = Path(__file__).with_name("datasets.json")
-    definitions = json.loads(source.read_text(encoding="utf-8"))
-    return [
-        {
-            **definition,
-            "image": _placeholder_image(
-                definition["background"],
-                definition["accent"],
-                definition["label"],
-            ),
-        }
-        for definition in definitions
-    ]
-
-
-DATASETS = load_datasets()
 
 def _absolute_codes(device: InputDevice) -> set[int]:
     if ecodes is None:
@@ -84,7 +72,7 @@ def find_touchpad(path: Optional[str]) -> InputDevice:
             raise RuntimeError(
                 f"{path} does not expose absolute touch coordinates. "
                 "Choose the raw touchpad event device instead of its mouse "
-                "interface."
+                "interface, or omit --device to auto-detect it."
             )
         return device
 
@@ -166,12 +154,20 @@ def read_touchpad(
                 )
             )
 
-def _update_pad_state(points: queue.Queue[TouchPoint], stop: threading.Event) -> None:
+def _update_pad_state(
+    points: queue.Queue[TouchPoint], stop: threading.Event, api: JukeboxAPI
+) -> None:
     while not stop.is_set():
         try:
             point = points.get(timeout=0.1)
         except queue.Empty:
             continue
+        api.update_pad(
+            x=point.x_ratio,
+            y=point.y_ratio,
+            touching=point.touching,
+            fingers=1 if point.touching else 0,
+        )
         pad_state.update(
             x=point.x_ratio,
             y=point.y_ratio,
@@ -182,11 +178,41 @@ def _update_pad_state(points: queue.Queue[TouchPoint], stop: threading.Event) ->
 class JukeboxAPI:
     """Template for methods exposed to the TypeScript frontend."""
 
+    def __init__(self) -> None:
+        self._selected_dataset = 0
+        image_dir = REPOSITORY_ROOT / "data" / "images"
+        manager = DatasetManager(
+            datasets_dir=image_dir,
+            include_tactile_reference=False,
+        )
+        self._service = SonificationService(
+            dataset_manager=manager,
+            enable_local_audio=True,
+        )
+        self._service.start()
+
     def get_datasets(self) -> list[dict[str, str | float]]:
-        return DATASETS
+        return [
+            {
+                "id": str(item["index"]),
+                "title": str(item["name"]),
+                "description": str(item["summary"]),
+                "image": (
+                    "data:image/png;base64,"
+                    + base64.b64encode(
+                        self._service.get_dataset_image_png(int(item["index"]))
+                    ).decode("ascii")
+                ),
+                "unit": str(item["unit"]),
+                "min": 0.0,
+                "max": 0.0,
+            }
+            for item in self._service.list_datasets()
+        ]
 
     def load_dataset(self, dataset_id: str) -> dict[str, str | float]:
-        for dataset in DATASETS:
+        self.select_dataset(dataset_id)
+        for dataset in self.get_datasets():
             if dataset["id"] == dataset_id:
                 return dataset
         raise ValueError(f"Unknown dataset: {dataset_id}")
@@ -202,6 +228,65 @@ class JukeboxAPI:
             touching=touching,
             fingers=max(0, fingers),
         )
+        self._service.process_coordinates(
+            {
+                "x_ratio": float(pad_state["x"]),
+                "y_ratio": float(pad_state["y"]),
+                "touching": bool(pad_state["touching"]),
+                "sensor_size": 40,
+                "dataset": self._selected_dataset,
+            }
+        )
+
+    def get_audio_status(self) -> dict[str, object]:
+        status = self._service.current_status()
+        return {
+            "backend": status["backend"],
+            "running": status["status"] == "ok",
+            "bpm": status["bpm"],
+        }
+
+    def close(self) -> None:
+        self._service.stop()
+
+    def select_dataset(self, dataset_id: str) -> None:
+        try:
+            self._selected_dataset = int(dataset_id)
+        except ValueError as exc:
+            raise ValueError(f"Invalid dataset id: {dataset_id}") from exc
+
+    def get_music_snapshot(self) -> dict[str, object]:
+        """Analyze the current browser/evdev position without starting local audio."""
+        return self._service.process_coordinates(
+            {
+                "x_ratio": float(pad_state["x"]),
+                "y_ratio": float(pad_state["y"]),
+                "touching": bool(pad_state["touching"]),
+                "sensor_size": 40,
+                "dataset": self._selected_dataset,
+            },
+            update_live=False,
+        )
+
+    def render_audio(self) -> dict[str, object]:
+        """Return a browser-playable base64 WAV and its analysis/music snapshot."""
+        wav_bytes, snapshot = self._service.render_audio_wav(
+            {
+                "x_ratio": float(pad_state["x"]),
+                "y_ratio": float(pad_state["y"]),
+                "touching": True,
+                "sensor_size": 40,
+                "dataset": self._selected_dataset,
+                "bars": 1,
+                "sample_rate": 22050,
+                "preview_only": True,
+            }
+        )
+        return {
+            "audio_base64": base64.b64encode(wav_bytes).decode("ascii"),
+            "mime_type": "audio/wav",
+            "snapshot": snapshot,
+        }
 
 def resolve_ui_url() -> str:
     if "--dev" in sys.argv:
@@ -253,6 +338,7 @@ def main() -> int:
         if input_mode == "auto":
             input_mode = "evdev" if sys.platform.startswith("linux") else "browser"
 
+        device: Optional[InputDevice] = None
         if input_mode == "evdev":
             device = find_touchpad(args.device)
 
@@ -263,15 +349,17 @@ def main() -> int:
                     reader_error.append(exc)
                     stop.set()
 
+        api = JukeboxAPI()
+        if device is not None:
             threading.Thread(target=reader, daemon=True).start()
             threading.Thread(
-                target=_update_pad_state, args=(points, stop), daemon=True
+                target=_update_pad_state, args=(points, stop, api), daemon=True
             ).start()
 
         window = webview.create_window(
             title="Earth Information Jukebox",
             url=resolve_ui_url(),
-            js_api=JukeboxAPI(),
+            js_api=api,
             width=1200,
             height=800,
         )
@@ -281,6 +369,7 @@ def main() -> int:
             http_server=True,
         )
         stop.set()
+        api.close()
         if reader_error:
             raise reader_error[0]
         return 0

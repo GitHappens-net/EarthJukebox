@@ -1,0 +1,97 @@
+{
+  "aerosol-optical-depth-pm25-2019.png": {
+    "name": "Global PM2.5 Aerosol Optical Depth (2019)",
+    "category": "Air Quality & Aerosols (MODIS / MISR / SeaWiFS)",
+    "unit": "µg/m³",
+    "summary": "Global fine particulate matter PM2.5 concentrations. Dark blue marks clean air under 5 micrograms per cubic meter, yellow and orange indicate elevated dust and pollution from 10 to 80, and dark red warns of severe hotspots up to 139.",
+    "color_meanings": [
+      ["Red", "severe fine particulate hotspot, 40 to 139 micrograms per cubic meter"],
+      ["Orange", "elevated dust or smoke particulate load, 10 to 80 micrograms per cubic meter"],
+      ["Blue", "clean air corridor or ocean zone under 10 micrograms per cubic meter"],
+      ["White", "polar land mask or chart margin"]
+    ]
+  },
+  "geos-aerosols-2025-08-19.png": {
+    "name": "GEOS Global Aerosol Transport (Aug 2025)",
+    "category": "Atmospheric Transport (NASA GEOS)",
+    "unit": "Aerosol Plumes",
+    "summary": "NASA GEOS global aerosol transport simulation. Swirling green currents trace marine sea salt over storm oceans, violet plumes trace Saharan mineral dust crossing the Atlantic, and bright orange-red filaments trace wildfire smoke and sulfates.",
+    "color_meanings": [
+      ["Red", "intense wildfire smoke or concentrated biomass burning emission"],
+      ["Orange", "Saharan mineral dust plume or warm smoke transport corridor"],
+      ["Green", "marine sea-salt aerosol lifted by ocean storm winds"],
+      ["Blue", "cyclonic sea-spray swirl or temperate marine aerosol"],
+      ["Black", "calm background atmosphere with minimal aerosol load"]
+    ]
+  },
+  "ecco2-ocean-currents-grid.jpg": {
+    "name": "ECCO2 Perpetual Ocean Currents & Temperature",
+    "category": "Ocean Circulation & Climate (NASA ECCO2)",
+    "unit": "°C / Flow",
+    "summary": "NASA ECCO2 high-resolution global ocean circulation visualization. Textured streams trace surface currents transitioning from cold polar blues and temperate greens to warm equatorial oranges and reds.",
+    "color_meanings": [
+      ["Red", "warmest tropical ocean current or intense boundary eddy"],
+      ["Orange", "warm equatorial ocean current or subtropical gyre"],
+      ["Green", "temperate mid-latitude current stream and upwelling belt"],
+      ["Blue", "cold polar and subpolar ocean current"],
+      ["Black", "continental landmass or calm abyssal basin"]
+    ]
+  },
+  "fwi-conus-2026-08-01.png": {
+    "name": "North America Fire Weather Index (Aug 2026)",
+    "category": "Wildfire Extremes (NASA GFWED)",
+    "unit": "FWI Risk",
+    "summary": "North America Fire Weather Index for August 1, 2026. Green marks very low fire danger, yellow and orange mark moderate danger, red marks very high danger, and deep crimson marks extreme wildfire weather conditions across the western interior.",
+    "color_meanings": [
+      ["Red", "very high to extreme fire weather danger"],
+      ["Orange", "low to moderate fire weather danger"],
+      ["Green", "very low fire weather danger with moist conditions"],
+      ["Black", "ocean water or unvegetated high-altitude mask"],
+      ["Blue", "legend box or coastal water boundary"]
+    ]
+  },
+  "fwi-global-forecast-latest.png": {
+    "name": "Global Fire Weather Index Forecast (Nov 2026)",
+    "category": "Global Wildfire Forecast (NASA GFWED)",
+    "unit": "FWI Risk",
+    "summary": "Global Fire Weather Index forecast for November 14, 2026. Grey masks unvegetated desert or snow, green marks very low fire risk, orange marks moderate risk, and deep red highlights extreme fire weather belts across Africa and Australia.",
+    "color_meanings": [
+      ["Red", "very high to extreme global fire weather risk belt"],
+      ["Orange", "low to moderate fire weather risk"],
+      ["Green", "very low fire weather risk"],
+      ["White", "unvegetated desert, polar snow, or ocean background mask"],
+      ["Black", "extreme wildfire core or polar shoreline"]
+    ]
+  },
+  "airs-global-co2-60s.png": {
+    "name": "AIRS Global Tropospheric CO2 (365–435 ppm)",
+    "category": "Greenhouse Gases (NASA Aqua / AIRS)",
+    "unit": "ppm CO2",
+    "summary": "Global tropospheric carbon dioxide measured by NASA's AIRS instrument. Warm oranges track elevated CO2 around 395 to 415 parts per million, while dark red hatches mark regional concentration peaks approaching 435 parts per million.",
+    "color_meanings": [
+      ["Red", "peak regional CO2 concentration approaching 435 parts per million"],
+      ["Orange", "elevated tropospheric CO2 around 395 to 415 parts per million"],
+      ["Black", "polar frame border or legend banner"],
+      ["White", "baseline 365 parts per million scale floor"]
+    ]
+  },
+  "svs-co2-column-2021-05-16.png": {
+    "name": "NASA SVS 3D Carbon Dioxide Column (May 2021)",
+    "category": "Atmospheric Carbon Plumes (NASA SVS)",
+    "unit": "ppm CO2",
+    "summary": "NASA Scientific Visualization Studio 3D carbon dioxide column with a global mean of 416.8 parts per million. Swirling orange-red clouds depict dense northern hemisphere CO2 plumes contrasting with lower southern levels and bright Antarctic ice.",
+    "color_meanings": [
+      ["Red", "dense CO2 filament approaching 425 parts per million"],
+      ["Orange", "elevated northern hemisphere CO2 plume above 405 parts per million"],
+      ["White", "Antarctic ice sheet or baseline scale band"],
+      ["Black", "lower southern hemisphere CO2 corridor over dark ocean"]
+    ]
+  },
+  "world-map.jpg": {
+    "name": "World Topography and Bathymetry (3D Tactile Reference)",
+    "category": "3D Tactile Overlay Map",
+    "unit": "Topography",
+    "summary": "Reference world map matching the 3D-printed tactile trackpad overlay for geographic orientation across continents and oceans.",
+    "color_meanings": []
+  }
+}
