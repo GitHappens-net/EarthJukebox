@@ -26,6 +26,9 @@ from backend.earth_jukebox.audio.theory import (
     DRUM_RIM,
     DRUM_SHAKER,
     DRUM_TAMBOURINE,
+    CHANNEL_PAN,
+    CHANNEL_VOLUME,
+    COLOR_INSTRUMENT_NAME,
     HARMONIC_PROGRESSION,
     NOTE_NAMES,
     PAD_CHANNEL,
@@ -34,6 +37,12 @@ from backend.earth_jukebox.audio.theory import (
     VERIDIS_QUO_PROGRESSION,
     WARM_PAD_CHANNEL,
     AnalysisResult,
+    AnalysisSmoother,
+    NoteEvent,
+    PAD_ROLES,
+    StepPlan,
+    StepSequencer,
+    active_layers,
     compute_expression_ccs,
     intensity_to_velocity,
     intensity_to_volume,
@@ -123,8 +132,8 @@ class CMinorAudioEngine:
         self._active_bass_notes: list[tuple[int, int]] = []
         self._active_drum_notes: list[int] = []
 
-        self._data_step_index = 0
-        self._arp_step_index = 0
+        self._pending_events: list[tuple[int, NoteEvent]] = []  # delayed earcon notes
+        self._mix_state: dict = {"touching": False}
         self._beat_info = (0, 0)  # (bar_0..7, beat_0..3)
         self._current_telemetry = "75 BPM | Standby"
         self._melodic_channels: tuple[int, ...] = ()
@@ -178,6 +187,9 @@ class CMinorAudioEngine:
             self.backend.control_change(ch, 91, reverb)
             if ch != self.DRUM_CHANNEL:
                 self.backend.control_change(ch, 93, 35)
+            # Mix balance + stereo placement so the color voice sits on top of the bed
+            self.backend.control_change(ch, 7, CHANNEL_VOLUME.get(ch, 100))
+            self.backend.control_change(ch, 10, int(round(64 + CHANNEL_PAN.get(ch, 0.0) * 50)))
 
         self._thread = threading.Thread(
             target=self._audio_loop,
@@ -272,16 +284,57 @@ class CMinorAudioEngine:
             return "wide"
         return "mid"
 
+    def mix_state(self) -> dict:
+        """Thread-safe snapshot of what is playing right now (for the UI / status API)."""
+        with self._lock:
+            return dict(self._mix_state)
+
+    def _release_channel_timed(self, channel: int, note: Optional[int] = None) -> None:
+        kept: list[tuple[int, int, int]] = []
+        for ch, n, off in self._active_timed_notes:
+            if ch == channel and (note is None or n == note):
+                self.backend.note_off(ch, n)
+            else:
+                kept.append((ch, n, off))
+        self._active_timed_notes = kept
+
+    def _emit(self, ev: NoteEvent, global_step: int) -> None:
+        if ev.role == "drum":
+            self.backend.note_on(self.DRUM_CHANNEL, ev.note, ev.velocity)
+            self._active_drum_notes.append(ev.note)
+            return
+        if ev.role in PAD_ROLES:
+            self.backend.note_on(ev.channel, ev.note, ev.velocity)
+            self._active_pad_notes.append((ev.channel, ev.note))
+            return
+        self._release_channel_timed(ev.channel, ev.note)   # never stack the same pitch
+        self.backend.note_on(ev.channel, ev.note, ev.velocity)
+        off_step = global_step + max(1, int(round(ev.steps)))
+        self._active_timed_notes.append((ev.channel, ev.note, off_step))
+
+    def _dispatch(self, plan: StepPlan, global_step: int) -> None:
+        # delayed notes (color-change earcon second note) that are now due
+        due = [p for p in self._pending_events if p[0] <= global_step]
+        self._pending_events = [p for p in self._pending_events if p[0] > global_step]
+        for _start, ev in due:
+            self._emit(ev, global_step)
+
+        if plan.retrigger_pad:
+            self._silence_pad_notes()
+        if any(ev.role == "bass" for ev in plan.events):
+            self._release_channel_timed(self.BASS_CHANNEL)      # mono bass
+        for ev in plan.events:
+            if ev.delay_steps > 0:
+                self._pending_events.append((global_step + ev.delay_steps, ev))
+            else:
+                self._emit(ev, global_step)
+
     def _audio_loop(self) -> None:
         clock_origin = time.monotonic()
         global_step = 0
-        was_touching = False
-        last_rhythm_tier = ""
-        last_color = ""
-        last_sensor_tier = ""
         last_cc_state: Optional[tuple[int, int, int, int]] = None
-        last_note_label = "C4"
-        pending_entry_trigger = False
+        sequencer = StepSequencer()
+        smoother = AnalysisSmoother()
 
         while not self._stop_event.is_set():
             target_time = clock_origin + global_step * self.SIXTEENTH_DURATION_SEC
@@ -299,152 +352,53 @@ class CMinorAudioEngine:
             beat_in_bar = step_16 // 4
 
             with self._lock:
-                analysis = self._latest_analysis
+                raw_analysis = self._latest_analysis
                 drums_on = self._ambient_drums_enabled
                 self._beat_info = (bar_index, beat_in_bar)
 
-            # Release expired 16th-step drums and timed melodic notes cleanly
             self._silence_drum_notes()
             self._release_expired_notes(global_step)
 
-            if not analysis.touching:
-                if was_touching:
+            # Smooth jittery CV features so the music changes on purpose, not by accident
+            analysis = smoother.update(raw_analysis)
+            plan = sequencer.plan(analysis, global_step, drums_on)
+
+            if not plan.touching:
+                if plan.released:
                     self._silence_all_active()
-                    was_touching = False
-                    pending_entry_trigger = False
+                    self._pending_events.clear()
                     last_cc_state = None
                 with self._lock:
                     self._current_telemetry = f"{self.BPM:.0f} BPM | Standby (hover map or press P)"
+                    self._mix_state = {"touching": False}
                 global_step += 1
                 continue
 
-            sensor_size = int(getattr(analysis, "sensor_size", 40))
-            sensor_tier = self._sensor_tier(sensor_size)
             last_cc_state = self._apply_expressive_ccs(analysis, step_16, last_cc_state)
+            self._dispatch(plan, global_step)
 
-            # 1. Veridis Quo Organ / Warm Pad Bed (Bar downbeat or cursor tier shift)
-            chord_name, _bass_note, pad_tones = plan_chord_voicing(
-                bar_index,
-                analysis.intensity,
-                sensor_size,
-                dominant_color=analysis.dominant_color,
-            )
-            if not was_touching or step_16 == 0 or sensor_tier != last_sensor_tier:
-                self._silence_pad_notes()
-                last_sensor_tier = sensor_tier
-                pad_vel = self.intensity_to_velocity(analysis.intensity)
-                for tone in pad_tones:
-                    q_tone = self.snap_to_c_minor(tone)
-                    self.backend.note_on(self.PAD_CHANNEL, q_tone, pad_vel)
-                    self._active_pad_notes.append((self.PAD_CHANNEL, q_tone))
-
-                    if sensor_size >= 30:
-                        self.backend.note_on(
-                            self.WARM_PAD_CHANNEL, q_tone, max(24, int(pad_vel * 0.80))
-                        )
-                        self._active_pad_notes.append((self.WARM_PAD_CHANNEL, q_tone))
-
-                if sensor_size > 60:
-                    # Lush Church Organ harmonic swell on wide cursor
-                    for organ_tone in pad_tones[:3]:
-                        q_org = self.snap_to_c_minor(organ_tone + 12)
-                        self.backend.note_on(
-                            self.CHURCH_ORGAN_CHANNEL, q_org, max(26, int(pad_vel * 0.72))
-                        )
-                        self._active_pad_notes.append((self.CHURCH_ORGAN_CHANNEL, q_org))
-
-            # 2. Pulsing French-Touch Analog Synth Bass (Program 38)
-            bass_hits = plan_bass_step(
-                bar_index, analysis.density, analysis.intensity, sensor_size, step_16
-            )
-            if bass_hits:
-                self._silence_bass_notes()
-                for b_note, b_vel in bass_hits:
-                    q_bass = self.snap_to_c_minor(b_note)
-                    self.backend.note_on(self.BASS_CHANNEL, q_bass, b_vel)
-                    self._active_bass_notes.append((self.BASS_CHANNEL, q_bass))
-
-            # 3. Ambient French-House / Downtempo Drum Groove (Channel 9)
-            spottiness = float(getattr(analysis, "spottiness", 0.0))
-            if drums_on:
-                for drum_note, drum_vel in self.plan_ambient_drums(
-                    analysis.density, analysis.intensity, step_16, spottiness=spottiness
-                ):
-                    self.backend.note_on(self.DRUM_CHANNEL, drum_note, drum_vel)
-                    self._active_drum_notes.append(drum_note)
-
-            # 4. Signature Veridis Quo Square-Lead Baroque Arpeggiator
-            arp_hit = plan_baroque_arpeggio(analysis, bar_index, step_16, self._arp_step_index)
-            if arp_hit is not None:
-                arp_note, arp_vel, arp_gate = arp_hit
-                self._arp_step_index += 1
-                q_arp = self.snap_to_c_minor(arp_note)
-                self.backend.note_on(self.ARP_CHANNEL, q_arp, arp_vel)
-                self._active_timed_notes.append((self.ARP_CHANNEL, q_arp, global_step + arp_gate))
-
-            # 5. Spottiness Syncopated Plucked Counter-Accents (Marimba Ch 11)
-            spot_hit = plan_spottiness_accents(analysis, bar_index, step_16)
-            if spot_hit is not None:
-                spot_note, spot_vel = spot_hit
-                q_spot = self.snap_to_c_minor(spot_note)
-                self.backend.note_on(self.PLUCK_CHANNEL, q_spot, spot_vel)
-                self._active_timed_notes.append((self.PLUCK_CHANNEL, q_spot, global_step + 1))
-
-            # 6. Beat-Synchronized Primary Color Data Sonification Voice
-            rhythm_name, beats = self.select_rhythm(analysis.density)
-            if (
-                not was_touching
-                or rhythm_name != last_rhythm_tier
-                or analysis.dominant_color != last_color
-            ):
-                pending_entry_trigger = True
-                last_rhythm_tier = rhythm_name
-                last_color = analysis.dominant_color
-            was_touching = True
-
-            grid_hit = self.should_trigger_data_step(analysis.density, step_16)
-            on_beat_entry = pending_entry_trigger and (step_16 % 4 == 0)
-
-            if grid_hit or on_beat_entry:
-                pending_entry_trigger = False
-                (
-                    channel,
-                    pitch,
-                    velocity,
-                    _volume,
-                    motif_name,
-                    dur_sec,
-                ) = self.plan_musical_step(analysis, self._data_step_index, bar_index=bar_index)
-                self._data_step_index += 1
-
-                if step_16 % 4 == 0:
-                    velocity = min(127, velocity + 8)
-
-                step_span = max(1, int(round(dur_sec / self.SIXTEENTH_DURATION_SEC)))
-                off_step = global_step + max(1, step_span - (1 if step_span > 1 else 0))
-
-                q_pitch = self.snap_to_c_minor(pitch)
-                self.backend.note_on(channel, q_pitch, velocity)
-                self._active_timed_notes.append((channel, q_pitch, off_step))
-
-                # Harmonic dyad on quarter beats (omitted in tight intimate cursor mode)
-                if step_16 % 4 == 0 and sensor_size >= 30:
-                    harmony_pitch = self.snap_to_c_minor(
-                        q_pitch - 5 if q_pitch >= 65 else q_pitch + 7
-                    )
-                    if harmony_pitch != q_pitch:
-                        self.backend.note_on(channel, harmony_pitch, max(24, int(velocity * 0.65)))
-                        self._active_timed_notes.append((channel, harmony_pitch, off_step))
-
-                last_note_label = self.midi_to_note_name(q_pitch)
-
-            shape_tag = getattr(analysis, "shape", "uniform")
+            sensor_size = int(getattr(analysis, "sensor_size", 40))
+            instrument = COLOR_INSTRUMENT_NAME.get(analysis.dominant_color, "pad")
             drum_tag = "Drums ON" if drums_on else "Drums OFF"
             with self._lock:
                 self._current_telemetry = (
-                    f"{self.BPM:.0f} BPM | {chord_name} ({bar_index + 1}/8) | "
-                    f"{last_note_label} ({rhythm_name}, {shape_tag}) | "
-                    f"Box {sensor_size}px | {drum_tag}"
+                    f"{self.BPM:.0f} BPM | {plan.chord_name} ({bar_index + 1}/8) | "
+                    f"{plan.tier_name}: {plan.rhythm_name} | "
+                    f"{analysis.dominant_color}->{instrument} {plan.note_label} "
+                    f"({getattr(analysis, 'shape', 'uniform')}) | Box {sensor_size}px | {drum_tag}"
                 )
+                self._mix_state = {
+                    "touching": True,
+                    "chord": plan.chord_name,
+                    "bar": bar_index,
+                    "beat": beat_in_bar,
+                    "tier": plan.tier,
+                    "tier_name": plan.tier_name,
+                    "rhythm": plan.rhythm_name,
+                    "color": analysis.dominant_color,
+                    "instrument": instrument,
+                    "note": plan.note_label,
+                    "layers": active_layers(analysis, drums_on),
+                }
 
             global_step += 1

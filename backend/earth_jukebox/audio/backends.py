@@ -368,7 +368,7 @@ class PygameMixerSynthBackend(AudioBackend):
             raise RuntimeError("pygame.mixer is not available") from exc
 
         pygame.mixer.init(frequency=self.SAMPLE_RATE, size=-16, channels=2, buffer=512)
-        pygame.mixer.set_num_channels(24)
+        pygame.mixer.set_num_channels(48)
         self._mixer = pygame.mixer
         self._sndarray = pygame.sndarray
         self._programs = dict(channel_programs)
@@ -376,6 +376,7 @@ class PygameMixerSynthBackend(AudioBackend):
         self._active_voices.clear()
 
     def _build_note_sound(self, channel: int, midi_note: int):
+        """Build (and cache) one note using the shared NumPy instruments in ``synth``."""
         assert np is not None
         assert self._sndarray is not None
 
@@ -384,53 +385,12 @@ class PygameMixerSynthBackend(AudioBackend):
         if cached is not None:
             return cached
 
-        duration = 0.22 if channel == 9 else 1.25
-        n_samples = int(self.SAMPLE_RATE * duration)
-        t = np.linspace(0.0, duration, n_samples, endpoint=False, dtype=np.float32)
+        from backend.earth_jukebox.audio.synth import render_channel_note_pcm
 
-        if channel == 9:
-            # Synthesized soft kick / rim / hat percussion
-            if midi_note in (35, 36):
-                freq_sweep = 110.0 * np.exp(-t * 18.0) + 42.0
-                phase = 2.0 * math.pi * np.cumsum(freq_sweep) / self.SAMPLE_RATE
-                wave = np.sin(phase) * np.exp(-t * 14.0)
-            elif midi_note in (37, 39, 63):
-                wave = (
-                    np.sin(2.0 * math.pi * 420.0 * t) * 0.6
-                    + np.sin(2.0 * math.pi * 890.0 * t) * 0.4
-                )
-                wave = wave * np.exp(-t * 28.0)
-            else:
-                rng = np.random.default_rng(midi_note)
-                noise = rng.uniform(-1.0, 1.0, size=n_samples).astype(np.float32)
-                decay = 12.0 if midi_note == 46 else 34.0
-                wave = noise * np.exp(-t * decay) * 0.35
-        else:
-            freq = 440.0 * (2.0 ** ((midi_note - 69) / 12.0))
-            program = self._programs.get(channel, 80)
-            phase = 2.0 * math.pi * freq * t
-            if program in (80, 81):
-                # Warm Veridis Quo analog square/organ blend
-                wave = 0.55 * np.tanh(2.2 * np.sin(phase)) + 0.30 * np.sin(2.0 * phase)
-                env = np.minimum(1.0, t / 0.015) * np.exp(-t * 2.2)
-            elif program in (33, 38):
-                # Analog French-touch synth bass
-                wave = 0.70 * np.sin(phase) + 0.30 * np.tanh(1.8 * np.sin(2.0 * phase))
-                env = np.minimum(1.0, t / 0.010) * np.exp(-t * 3.0)
-            else:
-                # Warm Drawbar Organ / Rhodes Pad
-                wave = (
-                    0.65 * np.sin(phase)
-                    + 0.25 * np.sin(2.0 * phase)
-                    + 0.10 * np.sin(3.0 * phase)
-                )
-                env = np.minimum(1.0, t / 0.035) * np.exp(-t * 1.1)
-            wave = wave * env
-
-        pcm = np.clip(wave * 11000.0, -32767, 32767).astype(np.int16)
-        stereo = np.column_stack((pcm, pcm))
-        sound = self._sndarray.make_sound(stereo)
-        if len(self._sound_cache) > 256:
+        # Rendered at a fixed reference velocity; loudness is applied with set_volume().
+        pcm = render_channel_note_pcm(channel, midi_note, sr=self.SAMPLE_RATE, gate_sec=1.2, velocity=100)
+        sound = self._sndarray.make_sound(pcm)
+        if len(self._sound_cache) > 384:
             self._sound_cache.clear()
         self._sound_cache[key] = sound
         return sound
@@ -442,7 +402,7 @@ class PygameMixerSynthBackend(AudioBackend):
             sound = self._build_note_sound(int(channel) & 0x0F, int(midi_note) & 0x7F)
             mixer_ch = sound.play()
             if mixer_ch is not None:
-                vol = max(0.05, min(1.0, int(velocity) / 127.0)) * 0.45
+                vol = max(0.05, min(1.0, (int(velocity) / 127.0) ** 1.3)) * 0.55
                 mixer_ch.set_volume(vol)
                 self._active_voices[(channel, midi_note)] = mixer_ch
         except Exception:
@@ -527,10 +487,17 @@ class BroadcastAudioBackend(AudioBackend):
 
     def note_on(self, channel: int, midi_note: int, velocity: int) -> None:
         self.inner.note_on(channel, midi_note, velocity)
-        from backend.earth_jukebox.audio.theory import midi_to_freq, midi_to_note_name
+        from backend.earth_jukebox.audio.theory import (
+            CHANNEL_PAN,
+            CHANNEL_TIMBRE,
+            midi_to_freq,
+            midi_to_note_name,
+        )
         self._publish({"type": "note_on", "channel": channel, "midi_note": midi_note,
                        "note_name": midi_to_note_name(midi_note), "freq_hz": midi_to_freq(midi_note),
-                       "velocity": velocity, "program": self._programs.get(channel)})
+                       "velocity": velocity, "program": self._programs.get(channel),
+                       "timbre": CHANNEL_TIMBRE.get(channel, "drums" if channel == 9 else None),
+                       "pan": CHANNEL_PAN.get(channel, 0.0)})
 
     def note_off(self, channel: int, midi_note: int) -> None:
         self.inner.note_off(channel, midi_note)

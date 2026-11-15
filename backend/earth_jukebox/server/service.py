@@ -32,6 +32,8 @@ from backend.earth_jukebox.audio import (
     select_chord_harmony_note,
     snap_to_c_minor,
 )
+from backend.earth_jukebox.audio.synth import render_sonification
+from backend.earth_jukebox.audio.theory import describe_mapping, format_music_explanation
 from backend.earth_jukebox.datasets import DatasetManager
 from backend.earth_jukebox.models import AnalysisResult, DatasetEntry
 from backend.earth_jukebox.vision import CVAnalyzer, extract_sensor_box
@@ -141,6 +143,7 @@ class SonificationService:
             "beat": beat_idx,
             "chord": chord.name,
             "drums_enabled": self.audio_engine.ambient_drums_enabled,
+            "mix": self.audio_engine.mix_state(),
             "subscribers": self.broadcast_backend.subscriber_count,
             "backend": self.broadcast_backend.backend_name,
             "dataset": {
@@ -270,6 +273,7 @@ class SonificationService:
             bar_index,
             analysis.intensity,
             sensor_size=sensor_size,
+            dominant_color=analysis.dominant_color,
         )
         pad_vel = intensity_to_velocity(analysis.intensity)
         bass_hits = plan_bass_step(
@@ -440,6 +444,8 @@ class SonificationService:
                 "swirliness": round(analysis.swirliness, 4),
             },
             "description": description,
+            "explanation": describe_mapping(analysis, self.audio_engine.ambient_drums_enabled),
+            "explanation_text": format_music_explanation(analysis, self.audio_engine.ambient_drums_enabled),
             "music": music_snapshot,
         }
 
@@ -449,6 +455,28 @@ class SonificationService:
             self.broadcast_backend.publish(result)
 
         return result
+
+
+    def render_wav(
+        self,
+        payload: dict[str, Any],
+        bars: int = 2,
+        loop: bool = True,
+    ) -> tuple[bytes, dict[str, Any]]:
+        """Render the sound for a coordinate payload as stereo WAV bytes plus a report.
+
+        Does not touch the live engine (``update_live=False``), so it is safe to call
+        from a "download this soundscape" endpoint.
+        """
+        analysis, *_ = self._analyze_payload(payload)
+        bar_index = int(payload.get("bar_index", 0))
+        return render_sonification(
+            analysis,
+            bar_index=bar_index,
+            bars=bars,
+            ambient_drums=bool(payload.get("drums", True)),
+            loop=loop,
+        )
 
 
 __all__ = ["SonificationService"]
