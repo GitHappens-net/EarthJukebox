@@ -342,6 +342,11 @@ def main() -> int:
         "--device",
         help="event device path, for example /dev/input/event7; auto-detect by default",
     )
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="Load the UI from the Vite dev server (http://localhost:5173).",
+    )
     args = parser.parse_args()
 
     try:
