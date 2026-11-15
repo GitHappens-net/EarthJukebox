@@ -319,7 +319,7 @@ class LinuxFluidSynthBackend(AudioBackend):
                 self._proc = None
 
 # Cross-platform software wavetable fallback using pygame.mixer + numpy
-class PygameMixerSynthBackend(AudioBackend):s
+class PygameMixerSynthBackend(AudioBackend):
     SAMPLE_RATE = 22050
 
     def __init__(self) -> None:
