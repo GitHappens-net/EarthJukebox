@@ -13,7 +13,6 @@ export type Dataset = {
 export type JukeboxApi = {
   calibrate_pad: () => Promise<string>;
   get_datasets: () => Promise<Dataset[]>;
-  load_dataset: (datasetId: string) => Promise<Dataset>;
   select_dataset: (datasetId: string) => Promise<void>;
   update_pad: (
     x: number,
@@ -22,25 +21,6 @@ export type JukeboxApi = {
     fingers: number,
   ) => Promise<void>;
   set_audio_enabled: (enabled: boolean) => Promise<void>;
-  get_music_snapshot: () => Promise<MusicSnapshot>;
-  get_audio_status: () => Promise<AudioStatus>;
-};
-
-export type MusicSnapshot = {
-  analysis?: {
-    dominant_color?: string;
-    intensity?: number;
-    density?: number;
-    shape?: string;
-  };
-  music?: { chord?: string; bpm?: number; primary_voice?: { note_name?: string } };
-  description?: string;
-};
-
-export type AudioStatus = {
-  backend: string;
-  running: boolean;
-  bpm: number;
 };
 
 declare global {

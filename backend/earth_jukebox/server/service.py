@@ -34,7 +34,6 @@ from backend.earth_jukebox.audio import (
 )
 from backend.earth_jukebox.datasets import DatasetManager
 from backend.earth_jukebox.models import AnalysisResult, DatasetEntry
-from backend.earth_jukebox.server.synth import render_sonification_wav
 from backend.earth_jukebox.vision import CVAnalyzer, extract_sensor_box
 
 
@@ -450,41 +449,6 @@ class SonificationService:
             self.broadcast_backend.publish(result)
 
         return result
-
-    def render_audio_wav(self, payload: dict[str, Any]) -> tuple[bytes, dict[str, Any]]:
-        """Render playable RIFF WAV audio specifically for the received coordinates."""
-        preview_only = bool(payload.get("preview_only", False))
-        snapshot = self.process_coordinates(payload, update_live=not preview_only)
-
-        analysis_dict = snapshot["analysis"]
-        coords_dict = snapshot["coordinates"]
-        analysis = AnalysisResult(
-            dominant_color=analysis_dict["dominant_color"],
-            intensity=analysis_dict["intensity"],
-            density=analysis_dict["density"],
-            shape=analysis_dict["shape"],
-            shape_score=analysis_dict["shape_score"],
-            spottiness=analysis_dict["spottiness"],
-            swirliness=analysis_dict["swirliness"],
-            sensor_size=coords_dict["sensor_size"],
-            sensor_bbox=tuple(coords_dict["sensor_bbox"]),
-            cursor_xy=(coords_dict["x"], coords_dict["y"]),
-            touching=coords_dict["touching"],
-        )
-
-        bars = int(payload.get("bars", 1))
-        sample_rate = int(payload.get("sample_rate", 44100))
-        drums = bool(payload.get("drums", self.audio_engine.ambient_drums_enabled))
-        bar_index = int(snapshot["music"]["bar_index"])
-
-        wav_bytes = render_sonification_wav(
-            analysis=analysis,
-            bar_index=bar_index,
-            bars=bars,
-            sample_rate=sample_rate,
-            ambient_drums=drums,
-        )
-        return wav_bytes, snapshot
 
 
 __all__ = ["SonificationService"]

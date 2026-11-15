@@ -64,29 +64,7 @@ a:focus-visible {
   background: #a8bc9c;
 }
 
-.ambient-orb {
-  display: none;
-}
-
-.glass-panel {
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  border-radius: 1rem;
-  background: rgba(235, 241, 231, 0.74);
-  box-shadow: 0 12px 30px rgba(48, 69, 45, 0.13);
-}
-
-.glass-panel .text-white {
-  color: #263525;
-}
-
-.glass-panel .text-slate-300,
-.glass-panel .text-slate-400 {
-  color: #52644c;
-}
-
-.glass-button,
-.status-pill,
-.info-chip {
+.glass-button {
   border: 1px solid rgba(75, 97, 63, 0.22);
   border-radius: 0.55rem;
   background: #4b613f;
@@ -102,27 +80,26 @@ a:focus-visible {
   background: #3b5033;
 }
 
-.status-pill,
-.info-chip {
-  display: inline-flex;
-  padding: 0.4rem 0.7rem;
+.glass-button.control-button {
+  border-radius: 9999px;
+  background: rgba(21, 55, 13, 0.72);
 }
 
-.info-chip {
-  background: rgba(75, 97, 63, 0.1);
-  color: #3f5239;
+.glass-button.control-button:hover {
+  background: rgba(21, 55, 13, 0.9);
 }
 
 .dataset-card {
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(229, 205, 130, 0.8);
+  background: #fff2b4;
+  box-shadow: 0 4px 10px rgba(48, 69, 45, 0.1);
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
 .dataset-card:hover {
   transform: translateX(4px);
-  border-color: #4b613f;
-  background: rgba(255, 255, 255, 0.72);
+  border-color: #728e6d;
+  background: #fff8d6;
 }
 
 .dataset-card .text-white {
@@ -134,9 +111,9 @@ a:focus-visible {
 }
 
 .dataset-card-selected {
-  border-color: #4b613f;
-  background: rgba(75, 97, 63, 0.18);
-  box-shadow: inset 3px 0 #4b613f;
+  border-color: #728e6d;
+  background: #f4df91;
+  box-shadow: inset 3px 0 #728e6d, 0 4px 10px rgba(48, 69, 45, 0.1);
 }
 
 .trackpad-shell {

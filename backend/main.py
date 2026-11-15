@@ -213,13 +213,6 @@ class JukeboxAPI:
             for item in self._service.list_datasets()
         ]
 
-    def load_dataset(self, dataset_id: str) -> dict[str, object]:
-        self.select_dataset(dataset_id)
-        for dataset in self.get_datasets():
-            if dataset["id"] == dataset_id:
-                return dataset
-        raise ValueError(f"Unknown dataset: {dataset_id}")
-
     def calibrate_pad(self) -> str:
         pad_state.update(x=0.5, y=0.5, touching=False, fingers=0)
         return "Pad calibrated"
@@ -252,14 +245,6 @@ class JukeboxAPI:
                 0,
             )
 
-    def get_audio_status(self) -> dict[str, object]:
-        status = self._service.current_status()
-        return {
-            "backend": status["backend"],
-            "running": status["status"] == "ok",
-            "bpm": status["bpm"],
-        }
-
     def close(self) -> None:
         self._service.stop()
 
@@ -268,39 +253,6 @@ class JukeboxAPI:
             self._selected_dataset = int(dataset_id)
         except ValueError as exc:
             raise ValueError(f"Invalid dataset id: {dataset_id}") from exc
-
-    def get_music_snapshot(self) -> dict[str, object]:
-        """Analyze the current browser/evdev position without starting local audio."""
-        return self._service.process_coordinates(
-            {
-                "x_ratio": float(pad_state["x"]),
-                "y_ratio": float(pad_state["y"]),
-                "touching": bool(pad_state["touching"]),
-                "sensor_size": 40,
-                "dataset": self._selected_dataset,
-            },
-            update_live=False,
-        )
-
-    def render_audio(self) -> dict[str, object]:
-        """Return a browser-playable base64 WAV and its analysis/music snapshot."""
-        wav_bytes, snapshot = self._service.render_audio_wav(
-            {
-                "x_ratio": float(pad_state["x"]),
-                "y_ratio": float(pad_state["y"]),
-                "touching": True,
-                "sensor_size": 40,
-                "dataset": self._selected_dataset,
-                "bars": 1,
-                "sample_rate": 22050,
-                "preview_only": True,
-            }
-        )
-        return {
-            "audio_base64": base64.b64encode(wav_bytes).decode("ascii"),
-            "mime_type": "audio/wav",
-            "snapshot": snapshot,
-        }
 
 def resolve_ui_url() -> str:
     if "--dev" in sys.argv:
